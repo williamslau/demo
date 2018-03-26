@@ -342,11 +342,11 @@ function copy(source, target) {
                         fs.write(wfd, buffer, 0, bytesRead, null, function (err, bytesWritten) {
                             next();
                         });
-                    }else{
-                        fs.close(rfd,function(){});
-                        fs.fsync(wfd,function(){
-                            fs.close(wfd,function(){
-                                console.log('关闭','拷贝成功');
+                    } else {
+                        fs.close(rfd, function () { });
+                        fs.fsync(wfd, function () {
+                            fs.close(wfd, function () {
+                                console.log('关闭', '拷贝成功');
                             });
                         });
                     }
@@ -363,22 +363,69 @@ copy('./3.txt', './4.txt');
 
 // 文件打开是需要关闭的
 let fs = require('fs');
-fs.open('./3.txt','w',function(err,fd){
-    fs.write(fd,Buffer.from('刘洋志'),0,9,0,function(err,byteswritten){
+fs.open('./3.txt', 'w', function (err, fd) {
+    fs.write(fd, Buffer.from('刘洋志'), 0, 9, 0, function (err, byteswritten) {
         // 当write方法触发了回调函数 并不是真正的文件背写入了，先把内容写入到缓存区
         // 所以现在还不能关闭，要先将缓存区的内容写如后，再关闭文件
-        fs.fsync(fd,function(){
-            fs.close(fd,function(){
+        fs.fsync(fd, function () {
+            fs.close(fd, function () {
                 console.log('关闭');
             });
         })
     });
 });
-setTimeout(function(){
-    fs.open('./3.txt','r',function(err,fd){
+setTimeout(function () {
+    fs.open('./3.txt', 'r', function (err, fd) {
         console.log(fd);
     });
-},1000);
+}, 1000);
+
+// fs.mkdir() fs.mkdirSync()创建文件夹
+// fs.access()判断文件存不存在
+// fs.constants.R_OK 文件可被调用进程读取
+// fs.constants.W_OK 文件可被调用进程写入
+
+// 同步创建文件夹
+let fs = require('fs');
+function mkdirp(dir) {
+    let paths = dir.split('/');
+    for (let i = 1; i <= paths.length; i++) {
+        let newPath = paths.slice(0, i).join('/');
+        console.log(newPath);
+        //创建目录需要先判断目录存不存在
+        try {
+            fs.access(newPath, fs.constants.R_OK);
+        } catch (e) {
+            fs.mkdirSync(newPath);
+        }
+    }
+}
+mkdirp('a/b/c/d/e');
+
+//异步创建文件夹
+//如果是异步的永远不能用for循环
+let fs = require('fs');
+function mkdirSync(dir,callback) {
+    let paths = dir.split('/');
+    console.log(paths);
+    function next(index) {
+        if (index > paths.length) return callback();
+        let newPath = paths.slice(0, index).join('/');
+        fs.access(newPath, function (err) {
+            if (err) {    //如果文件不存在就创建这个文件
+                fs.mkdir(newPath, function (err) {
+                    next(index+1);
+                });
+            } else {
+                next(index+1);  //文件夹存在就判断下一个文件夹，递归
+            }
+        });
+    }
+    next(1);
+}
+mkdirSync('a/b/c/d/e',function(){
+    console.log('完成');
+});
 
 
 
