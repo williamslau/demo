@@ -117,7 +117,7 @@ fs.readFile('./1.log', function () {
     })
 });
 
-//最后的例子
+// 最后的例子
 setImmediate(function () {
     console.log(1);
     process.nextTick(function () {
@@ -132,26 +132,26 @@ process.nextTick(function () {
 })
 // 2 1 3 4
 
-//模块引入的小坑
+// 模块引入的小坑
 module.exports = 'xxx'  //可以使用
 exports = 'xxx'           //不可以使用
-//但是可以
+// 但是可以
 exports.x = 'xxx'
-//path内部方法  （文件路径处理）
-//path.join(xxx,xxx)合并路径
-//path.resolve()
+// path内部方法  （文件路径处理）
+// path.join(xxx,xxx)合并路径
+// path.resolve()
 
 
-//util内部工具方法
+// util内部工具方法
 
-//util.promisify()  相当于blueBird 将方法promise化
+// util.promisify()  相当于blueBird 将方法promise化
 let fs = require('fs');
 let { promisify } = require('util');
 let read = promisify(fs.readFile);
 read('./1.txt', 'utf8').then(function (data) {
     console.log(data);
 });
-//回顾bluebird
+// 回顾bluebird
 let bluebird = require('bluebird');
 let fs = require('fs');
 let read = bluebird.promisify(fs.readFile);
@@ -159,11 +159,11 @@ read('./1.txt', 'utf8').then(function (data) {
     console.log(data);
 });
 
-//util.inspect() 没什么实际用处 等价于console.dir();
+// util.inspect() 没什么实际用处 等价于console.dir();
 let util = require('util');
 console.log(util.inspect(Array.prototype, { showHidden: true }));
 
-//util.inherits() 继承 只继承共有属性
+// util.inherits() 继承 只继承共有属性
 let util = require('util');
 function A() { }
 A.prototype.fn = function () {
@@ -173,16 +173,16 @@ function B() { }
 util.inherits(A, B);
 let b = new A();
 b.fn();
-//第一种继承共有属性的方法
+// 第一种继承共有属性的方法
 A.prototype.__proto = B.prototype;
-//第二种
+// 第二种
 A.prototype = Object.create(B.prototype);
-//第三种
+// 第三种
 Object.setPrototypeOf(A.prototype, b.prototype);
-//inherite用的第三种
+// inherite用的第三种
 
-//events 发布订阅
-//小例子
+// events 发布订阅
+// 小例子
 let fs = require('fs');
 let path = require('path');
 let EventEmitter = require('events');
@@ -196,11 +196,11 @@ fs.readFile('1.txt', 'utf8', function (err, data) {
 fs.readFile('2.txt', 'utf8', function (err, data) {
     events.emit('getData', data);
 });
-//还有很多暂时搁置
+// 还有很多暂时搁置
 
 
 
-//截取bom头 在fs.readFileSync()方法里 UTF8格式的文件在字节标识需要删除 EF BB BF  
+// 截取bom头 在fs.readFileSync()方法里 UTF8格式的文件在字节标识需要删除 EF BB BF  
 let fs = require('fs');
 function stripBOM(content) {
     if (Buffer.isBuffer(content)) {
@@ -226,13 +226,13 @@ let result = fs.readFileSync('./2.txt');
 result = iconv.decode(result, 'gbk');
 console.log(result.toString());
 
-//Buffer的乱码问题
+// Buffer的乱码问题
 let buffer = Buffer.from('珠峰培训');
 let buff1 = buffer.slice(0, 5);
 let buff2 = buffer.slice(5);
 console.log(buff1.toString());
 console.log(buff2.toString());
-//string_decoder模块解决
+// string_decoder模块解决
 let buffer = Buffer.from('珠峰培训');
 let buff1 = buffer.slice(0, 5);
 let buff2 = buffer.slice(5);
@@ -243,13 +243,13 @@ console.log(sd.write(buff2).toString());
 // 模块来解决输出问题 string_decoder 我不识别的不输出 先攒着
 
 // fs模块 fileSystem 文件系统
-//同步性能低，会阻塞线程，能用异步就用异步
+// 同步性能低，会阻塞线程，能用异步就用异步
 
-//fs.readFile() fs.readFileSync() 读取文件
+// fs.readFile() fs.readFileSync() 读取文件
 let fs = require('fs');
 fs.readFile('./1.txt', {
-    encoding: null,  //读取文件时候的编码,默认是null,代表的是二进制
-    flag: 'r',       //条件 r读文件 w写文件 a追加写入
+    encoding: null,  // 读取文件时候的编码,默认是null,代表的是二进制
+    flag: 'r',       // 条件 r读文件 w写文件 a追加写入
 }, function (err, data) {
     if (err) {
         console.log(err);
@@ -258,7 +258,7 @@ fs.readFile('./1.txt', {
     }
 });
 
-//fs.writeFile() 写入文件
+// fs.writeFile() 写入文件
 let fs = require('fs');
 fs.writeFile('./3.txt', 'aaa', {
     encoding: null,      //默认null(二进制)
@@ -268,10 +268,10 @@ fs.writeFile('./3.txt', 'aaa', {
 });
 // d                    rwx              rwx             rwx       
 // -                    421              421             421
-//文件夹为d文件为-       文件所有者权限    文件所属组权限   其他用户
+// 文件夹为d文件为-       文件所有者权限    文件所属组权限   其他用户
 
 // fs.copyFile() 拷贝文件(node8.5+)
-//小例子（不方便）
+// 小例子（不方便）
 let fs = require('fs');
 function copy(source, target) {
     fs.readFile(source, 'utf8', function (err, data) {
@@ -289,37 +289,39 @@ fs.copyFile('./1.txt', './5.txt', function (err) {
     console.log(111);
 });
 
-//fs.open() 打开文件
-//flag参数含义
-//r 读取文件
-//r+ 读取并写入（替换） 
-//rs 同步读取文件并忽略缓存
-//w 写入文件，不存在则创建，存在则清空
-//wx 排他写入文件
-//w+ 读取并写入文件，不存在则创建，存在则清空
-//wx+ 和w+类似，排他方式打开
-//a 追加写入
-//ax 与a类似，排他方式写入
-//a+ 读取并追加写入，不存在则创建
-//ax+ 作用与a+类似，但是以排他方式打开文件
+// fs.open() 打开文件
+// flag参数含义
+// r 读取文件
+// r+ 读取并写入（替换） 
+// rs 同步读取文件并忽略缓存
+// w 写入文件，不存在则创建，存在则清空
+// wx 排他写入文件
+// w+ 读取并写入文件，不存在则创建，存在则清空
+// wx+ 和w+类似，排他方式打开
+// a 追加写入
+// ax 与a类似，排他方式写入
+// a+ 读取并追加写入，不存在则创建
+// ax+ 作用与a+类似，但是以排他方式打开文件
 let fs = require('fs');
 // fd(file descriptor) 文件描述符 代表对当前文件的描述 从3开始
 // process.stdout.write(); // 标准输出  1
 // process.stderr.write();// 错误输出 2
 
 // 读
+// fs.read()
 let buffer = Buffer.alloc(3);
 fs.open('./3.txt', 'r', 0o666, function (err, fd) {
     // offset表示的是 buffer从那个开始存储
     // length就是一次想读几个,length不能大于buffer的长度
     // postion 代表的是文件的读取位置，默认可以写null 当前位置从0开始
     fs.read(fd, buffer, 0, 3, null, function (err, bytesRead) {
-        //bytesRead读到的个数
+        // bytesRead读到的个数
         console.log(buffer);
     })
 });
 
-//写
+// 写
+// fs.write()
 // 如果flag是a 那你写的position参数就不生效了
 let fs = require('fs');
 let buffer = Buffer.from('0123456789');
@@ -329,7 +331,7 @@ fs.open('./3.txt', 'r+', 0o666, function (err, fd) {
     });
 });
 
-//读写组合
+// 读写组合
 let fs = require('fs');
 function copy(source, target) {
     let size = 3;
@@ -358,8 +360,8 @@ function copy(source, target) {
 }
 copy('./3.txt', './4.txt');
 
-//fs.fsync()将缓存区数据强制写入文件
-//fs.close()关闭文件
+// fs.fsync()将缓存区数据强制写入文件
+// fs.close()关闭文件
 
 // 文件打开是需要关闭的
 let fs = require('fs');
@@ -392,9 +394,9 @@ function mkdirp(dir) {
     for (let i = 1; i <= paths.length; i++) {
         let newPath = paths.slice(0, i).join('/');
         console.log(newPath);
-        //创建目录需要先判断目录存不存在
+        // 创建目录需要先判断目录存不存在
         try {
-            fs.access(newPath, fs.constants.R_OK);
+            fs.accessSync(newPath, fs.constants.R_OK);
         } catch (e) {
             fs.mkdirSync(newPath);
         }
@@ -402,30 +404,278 @@ function mkdirp(dir) {
 }
 mkdirp('a/b/c/d/e');
 
-//异步创建文件夹
-//如果是异步的永远不能用for循环
+// 异步创建文件夹
+// 如果是异步的永远不能用for循环，要用next()函数自调用，递归来替代
 let fs = require('fs');
-function mkdirSync(dir,callback) {
+function mkdirSync(dir, callback) {
     let paths = dir.split('/');
-    console.log(paths);
     function next(index) {
         if (index > paths.length) return callback();
         let newPath = paths.slice(0, index).join('/');
         fs.access(newPath, function (err) {
-            if (err) {    //如果文件不存在就创建这个文件
+            if (err) {    // 如果文件不存在就创建这个文件
                 fs.mkdir(newPath, function (err) {
-                    next(index+1);
+                    next(++index);
                 });
             } else {
-                next(index+1);  //文件夹存在就判断下一个文件夹，递归
+                next(++index);  // 文件夹存在就判断下一个文件夹，递归
             }
         });
     }
     next(1);
 }
-mkdirSync('a/b/c/d/e',function(){
+mkdirSync('a/b/c/d/e', function () {
     console.log('完成');
 });
 
+//删除文件夹
+// fs.rmdir() fs.rmdirSync() 删除文件夹
+// fs.unlink() fs.unlinkSync() 删除文件
+
+// fs.stat('file',function(err, stat){})    读取文件的状态
+// stat.isDirectory()方法 判断是不是文件夹
+// stat.ifFile()方法 判断是不是文件
+// 如果文件夹不存在则会走error
+
+// fs.readdir('file', function(err, files){}) 读取文件夹内容
+// 基础用法
+let fs = require('fs');
+fs.stat('a', function (err, stat) {
+    console.log(stat.isDirectory());
+    console.log(stat.isFile());
+    if (stat.isDirectory()) {
+        fs.readdir('a', function (err, files) {
+            console.log(files);
+        });
+    }
+});
+
+// 同步删除文件夹 (遗留问题，如果没有传参的文件夹的话会报错)
+let fs = require('fs');
+let path = require('path');
+function removeDir(dir) {
+    let files = fs.readdirSync(dir); // 读取内容
+    for (let i = 0; i < files.length; i++) {
+        console.log(files[i]);
+        let newPath = path.join(dir, files[i]);
+        let stat = fs.statSync(newPath);
+        if (stat.isDirectory()) {
+            //如果是文件夹就递归
+            removeDir(newPath);
+        } else {
+            fs.unlinkSync(newPath);
+        }
+    }
+    fs.rmdirSync(dir); //入锅文件夹是空的就把自己删掉
+}
+removeDir('a');
+
+// 异步删除文件夹 Promise方法
+let fs = require('fs');
+let path = require('path');
+function removePromise(dir) {
+    return new Promise(function (resolve, reject) {
+        fs.stat(dir, function (err, stat) {
+            if (stat.isDirectory()) {
+                fs.readdir(dir, function (err, files) {
+                    files = files.map(file => path.join(dir, file));
+                    files = files.map(file => removePromise(file));
+                    Promise.all(files).then(function () {
+                        fs.rmdir(dir, resolve);
+                    })
+                });
+            } else {
+                fs.unlink(dir, resolve);
+            }
+        });
+    });
+}
+removePromise('a').then(function () {
+    console.log('删除');
+});
+
+// 异步删除文件夹 递归方法 深度遍历
+let fs = require('fs');
+let path = require('path');
+function rmdir(dir, callback) {
+    fs.readdir(dir, function (err, files) {
+        // 读取到文件
+        function next(index) {
+            if (index === files.length) return fs.rmdir(dir, callback);
+            let newPath = path.join(dir, files[index]);
+            fs.stat(newPath, function (err, stat) {
+                if (stat.isDirectory()) {     // 如果是文件夹
+                    rmdir(newPath, () => next(index + 1));
+                } else {
+                    fs.unlink(newPath, () => next(index + 1));
+                }
+            });
+        }
+        next(0)
+    });
+}
+rmdir('a', function () {
+    console.log('删除成功');
+});
+
+// 广度遍历同步删除文件
+// 原理是先创建一个数组，然后吧文件拼接好路径push进去，删除从后往前删除
+let fs = require('fs');
+let path = require('path');
+function preWide(dir, callback) {
+    let arrs = [dir];
+    let index = 0;
+    let current;
+    while (current = arrs[index++]) {
+        let stat = fs.statSync(current);
+        if (stat.isDirectory()) {
+            let files = fs.readdirSync(current);
+            arrs = [...arrs, ...files.map(file => {
+                return path.join(current, file);
+            })];
+        }
+    }
+    for (let i = arrs.length - 1; i >= 0; i--) {
+        let stat = fs.statSync(arrs[i]);
+        if (stat.isDirectory()) {
+            fs.rmdirSync(arrs[i]);
+        } else {
+            fs.unlinkSync(arrs[i]);
+        }
+    }
+}
+preWide('a');
+
+// 异步广度遍历删除文件
+let fs = require('fs');
+let path = require('path');
+function wide(dir, callback) {
+    let arrs = [dir];
+    let index = 0;
+    function rmdir() {
+        if (index === 0) return callback()
+        let current = arrs[--index];
+        fs.stat(current, function (err, stat) {
+            if (stat.isDirectory()) {
+                fs.rmdir(current, rmdir);
+            } else {
+                fs.rmdir(current, rmdir);
+            }
+        });
+    }
+    function next() {
+        if (index === arrs.length) return rmdir()
+        let current = arrs[index++];
+        fs.stat(current, function (err, stat) {
+            if (stat.isDirectory()) {
+                fs.readdir(current, function (err, files) {
+                    arrs = [...arrs, ...files.map(file => path.join(current, file))]
+                    next();
+                });
+            } else {
+                next();
+            }
+        });
+    }
+    next();
+}
+wide('a', function () {
+    console.log('删除完毕');
+});
+
+// watchFile()监控文件有没有改动
+// current是当前状态 prev是上一次的状态
+
+// Date.parse(date) 解析时间
+let fs = require('fs');
+fs.watchFile('./4.txt', function (current, prev) {
+    if (Date.parse(current.ctime) === 0) {
+        console.log('创建');
+    } else if (Date.parse(prev.ctime === 0)) {
+        console.log('删除');
+    } else {
+        console.log('修改');
+    }
+});
 
 
+// fs.rename() 修改文件夹名字
+let fs = require('fs');
+fs.rename('a', 'b');
+
+//fs.truncate() 截断文件里的内容
+let fs = require('fs');
+fs.truncate('./4.txt', 5);
+
+
+//流
+
+// 流的特点 1.是有序的 2.有方向的
+// 流分为好多种，常见的 1.可读流 2.可写流
+// 对文件的操作用的也是fs模块
+// fs.createReadStream() 创建一个可读流 返回的是一个可读流对象
+// rs.on('data',function(data){}) 触发流动状态
+// rs.pause() 暂停data事件的触发 
+// rs.resume() 恢复data事件的触发
+// rs.on('end',function(data){}) 暂停
+// rs.on('open',function(data){}) 打开文件
+// rs.on('close',function(data){}) 关闭文件
+// rs.on('error',function(data){}) 如果有错误会会触发
+// rs.setEncoding('utf8'); 将编码设置为utf8,设置编码
+
+let fs = require('fs');
+let path = require('path');
+let rs = fs.createReadStream(path.join(__dirname, '1.txt'), {
+    flags: 'r', // 文件的操作是读取操作
+    encoding: 'utf8', // 默认是null null代表的是buffer
+    autoClose: true, // 读取完毕后自动关闭
+    highWaterMark: 3,// 默认是64k  64*1024b
+    start: 0, // 123 456 789  从0开始读
+    //end:3 // 包前又包后 读到3
+});
+
+// 默认情况下不会将文件中的内容输出
+// 内部会先创建一个Buffer先读取3b(三字节)
+// 如果你不进行操作，默认是非流动模式，暂停状态，要事件触发rs.on('data',function(data){})
+// 流动模式会疯狂的触发data事件
+rs.on('data', function (data) {
+    console.log(data);
+    //读取
+
+});
+
+rs.pause(); // 暂停方法 表示暂停读取，暂停data事件触发
+
+rs.resume() // 恢复data事件的触发
+
+rs.on('end', function () {
+    console.log('暂停')
+});
+
+rs.on('open', function () {
+    console.log('文件打开')
+});
+
+rs.on('close', function () {
+    console.log('关闭')
+});
+
+rs.on('error', function (err) {
+    console.log(err);
+    //错误
+});
+
+rs.setEncoding('utf8'); //将编码设置为utf8
+
+// 可读流的封装
+
+let EventEmitter = require('events');
+
+class ReadStream extends EventEmitter {
+    constructor(path,options){
+        super();
+        this.path=path;
+        this.flags=options.flage||'r';
+
+    }
+}
