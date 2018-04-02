@@ -613,6 +613,8 @@ fs.truncate('./4.txt', 5);
 // 流的特点 1.是有序的 2.有方向的
 // 流分为好多种，常见的 1.可读流 2.可写流
 // 对文件的操作用的也是fs模块
+
+
 // fs.createReadStream() 创建一个可读流 返回的是一个可读流对象
 // rs.on('data',function(data){}) 触发流动状态
 // rs.pause() 暂停data事件的触发 
@@ -623,6 +625,8 @@ fs.truncate('./4.txt', 5);
 // rs.on('error',function(data){}) 如果有错误会会触发
 // rs.setEncoding('utf8'); 将编码设置为utf8,设置编码
 
+
+// 可读流的用法
 let fs = require('fs');
 let path = require('path');
 let rs = fs.createReadStream(path.join(__dirname, '1.txt'), {
@@ -668,14 +672,528 @@ rs.on('error', function (err) {
 rs.setEncoding('utf8'); //将编码设置为utf8
 
 // 可读流的封装
+//this.on('newListener', (eventName, callback) => {}); 判断是否监听某个事件
 
+let fs = require('fs');
+let path = require('path');
 let EventEmitter = require('events');
 
 class ReadStream extends EventEmitter {
-    constructor(path,options){
+    constructor(path, options) {
         super();
-        this.path=path;
-        this.flags=options.flage||'r';
-
+        this.path = path;
+        this.flags = options.flage || 'r';
+        this.autoClose = options.autoClose || true;
+        this.highWaterMark = options.highWaterMark || 64 * 1024;
+        this.start = options.start || 0;
+        this.end = options.end;
+        this.encoding = options.encoding || null;
+        this.flowing = null; // 用来监听data事件，null就是暂停模式（非流动模式）
+        this.buffer = Buffer.alloc(this.highWaterMark); // 建立一个buffer 这个buffer就是要一次读多少
+        this.pos = this.start; // pos 读取的位置 默认和start一样，但是pos可变，start不变
+        this.open();
+        this.on('newListener', (eventName, callback) => {
+            if (eventName === 'data') { // 判断是否监听data事件
+                this.flowing = true;
+                this.read(); // 读内容
+            }
+        });
+    }
+    // 打开文件的方法
+    open() {
+        fs.open(this.path, this.flags, (err, fd) => {
+            if (err) {
+                this.emit('error', err);
+                if (this.autoClose) {   // 判断是否自动关闭
+                    this.destroy(); // 关闭方法
+                }
+                return;
+            }
+            this.fd = fd; // 保存文件描述符
+            this.emit('open');
+        })
+    }
+    // 读取 
+    read() {
+        if (typeof this.fd !== 'number') {    // 不等于number文件还没打开呢
+            return this.once('open', () => this.read()) // 当文件真正打开的时候 会触发open事件，触发事件后再执行read，此时fd肯定有了
+        }
+        let howMuchToRead = this.end ? Math.min(this.highWaterMark, this.end - this.pos + 1) : this.highWaterMark;
+        fs.read(this.fd, this.buffer, 0, howMuchToRead, this.pos, (err, bytesRead) => {
+            if (bytesRead > 0) {
+                this.pos += bytesRead;
+                let data = this.encoding ? this.buffer.slice(0, bytesRead).toString(this.encoding) : this.buffer.slice(0, bytesRead);
+                this.emit('data', data);
+                if (this.pos > this.end) { // 当读取的位置 大于了末尾 就是读取完毕了
+                    this.emit('end');
+                    this.destroy();
+                }
+                if (this.flowing) { // 流动模式继续触发
+                    this.read();
+                }
+            } else {
+                this.emit('end');
+                this.destroy();
+            }
+        });
+    }
+    // pipe方法封装
+    pipe(ws) {
+        this.on('data', (chunk) => {
+            let flag = ws.write(chunk);
+            if (!flag) {
+                this.pause();
+            }
+        });
+        ws.on('drain', () => {
+            this.resume();
+        })
+    }
+    // 关闭（销毁）的方法
+    destroy() {
+        if (typeof this.fd === 'number') { // 先判断有没有fd, 有就关闭文件，触发close事件
+            fs.close(this.fd, () => {
+                this.emit('close');
+            });
+            return;
+        }
+        this.emit('close'); // 触发close事件
+    }
+    // 暂停的方法
+    pause() {
+        this.flowing = false;
+    }
+    // 恢复的方法
+    resume() {
+        this.flowing = true;
+        this.read();
     }
 }
+
+let rs = new ReadStream('./4.txt', {
+    flags: 'r',
+    encoding: 'utf8',
+    autoClose: true,
+    highWaterMark: 3,
+    start: 0,
+    end: 6
+});
+rs.on('open', function () { console.log('文件打开了') });
+rs.on('data', function (data) { console.log('data', data); });
+rs.on('error', function (err) { console.log(err); });
+rs.on('end', function () { console.log('end') });
+rs.on('close', function () { console.log('关闭') });
+
+// pipe 读一点，写一点
+let fs = require('fs');
+let rs = fs.createReadStream('./3.txt', {
+    highWaterMark: 4,
+});
+let ws = fs.createWriteStream('./4.txt', {
+    highWaterMark: 1,
+});
+
+rs.on('data', function (chunk) {
+    let falg = ws.write(chunk);
+    console.log(falg);
+    if (!falg) {
+        rs.pause();
+    }
+});
+ws.on('drain', function () {
+    console.log('干了');
+    rs.resume();
+})
+
+// rs.pipe(ws); 原生自带pipe 读一点，写一点
+let fs = require('fs');
+let rs = fs.createReadStream('./3.txt', {
+    highWaterMark: 4,
+});
+let ws = fs.createWriteStream('./4.txt', {
+    highWaterMark: 1,
+});
+rs.pipe(ws);
+
+// 自己封装的pipe
+let rs = new ReadStream('./3.txt', {
+    highWaterMark: 4,
+});
+let ws = fs.createWriteStream('./4.txt', {
+    highWaterMark: 1,
+});
+rs.pipe(ws);
+
+
+// 可写流
+
+// 可写流用法
+// fs.createWriteStream() 创建可写流
+// ws.write()写入事件（异步的方法）
+// ws.write()写入的数据必须是字符串或者Buffer 当文件被清空的时候才会变成true
+
+// ws.on('drain', () => { })抽干方法 当写入完后，会触发
+// ws.on('drain', () => { })必须缓存区满了 满了后被清空了才会出发drain
+
+// ws.end() 最后一次写入 当写完后 就不能再继续写了
+
+
+// 可写流的用法
+let fs = require('fs');
+let ws = fs.createWriteStream('./4.txt', {
+    flages: 'w',     //读写标识符
+    mode: 0o666, // 权限
+    autoClose: true, // 是否自动关闭
+    highWaterMark: 3, // 默认是16k
+    encoding: 'utf8', // 编码格式
+    start: 0 //从哪开始
+});
+
+let i = 9;
+function write() {
+    let flag = true;
+    while (i >= 0 && flag) {
+        flag = ws.write(--i + '');
+        console.log(flag);
+    }
+}
+write();
+
+ws.on('drain', function () {
+    console.log('抽干')
+    write();
+})
+
+ws.end('ok');
+
+
+// 可写流的封装
+
+let fs = require('fs');
+let EventEmitter = require('events');
+class WriteStream extends EventEmitter {
+    constructor(path, options) {
+        super();
+        this.path = path;
+        this.highWaterMark = options.highWaterMark || 16 * 1024;
+        this.autoClose = options.autoClose || true;
+        this.mode = options.mode;
+        this.start = options.start || 0;
+        this.flags = options.flags || 'w';
+        this.encoding = options.encoding || 'utf8';
+        this.buffers = []; // 可写流要有一个缓存区，当正在写入文件是，内容要写入到缓存区中在源码中是一个链表，为了方便，这里用数组
+        this.writeing = false;  // 表示是否正在上写入
+        this.needDrain = false; // 是否满足触发drain事件
+        this.pos = 0; // 记录写入的位置
+        this.length = 0; // 记录缓存区的大小
+
+        this.open();
+
+    }
+    //打开的方法
+    open() {
+        fs.open(this.path, this.flags, this.mode, (err, fd) => {
+            if (err) {
+                this.emit(err, err);
+                if (this.autoClose) {
+                    this.destroy();
+                }
+                return;
+            }
+            this.fd = fd;
+            this.emit('open');
+        });
+    }
+    // 写入的方法
+    write(chunk, encoding = this.encoding, callback = () => { }) {
+        chunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, encoding);
+        this.length += chunk.length;
+        let ret = this.length < this.highWaterMark;  // 是否达到了缓存区的大小
+        this.needDrain = !ret;     // 是否触发needDrain
+
+        if (this.writeing) {    //判断是否正在写入，如果正在写入，就写到缓存区中
+            this.buffers.push({
+                chunk,
+                encoding,
+                callback
+            });
+        } else {
+            this.writeing = true;
+            this._write(chunk, encoding, () => {    //专门用来将内容写入到文件内的方法发
+                callback();
+                this.clearBuffer();     //清空缓存区的内容
+            });
+        }
+        return ret;
+    }
+    // 清空缓存区
+    clearBuffer() {
+        let buffer = this.buffers.shift();
+        if (buffer) {
+            this._write(buffer.chunk, buffer.encoding, () => {
+                buffer.callback();
+                this.clearBuffer();
+            });
+        } else {
+            this.writing = false;
+            if (this.needDrain) {
+                this.needDrain = false;
+                this.emit('drain');
+            }
+        }
+    }
+    _write(chunk, encoding, callback) {
+        if (typeof this.fd !== 'number') {
+            return this.once('open', () => this._write(chunk, encoding, callback));
+        }
+        fs.write(this.fd, chunk, 0, chunk.length, this.ope, (err, byteWritten) => {
+            this.length -= byteWritten;
+            this.pos += byteWritten;
+            callback();
+        });
+    }
+    // 关闭的方法
+    destroy() {
+        if (typeof this.fd !== 'number') {
+            return this.emit('close');
+        }
+        fs.close(this.fd, () => {
+            this.emit('close');
+        });
+    }
+}
+let ws = new WriteStream('./4.txt', {
+    highWaterMark: 3,
+    autoClose: true,
+    flags: 'w',
+    encoding: 'utf8',
+    mode: 0o666,
+    start: 0,
+});
+
+let i = 9;
+function write() {
+    let flag = true;
+    while (i > 0 && flag) {
+        flag = ws.write(--i + '', 'utf8', () => { console.log('ok') });
+        console.log(flag);
+    }
+}
+write();
+ws.on('drain', function () {
+    console.log('抽干');
+    write();
+})
+
+
+// 之前做的可读流是flowing模式（流动模式） 还有一种暂停模式(readable)需要补充
+
+// 可读流暂停模式用法
+let fs = require('fs');
+let rs = fs.createReadStream('./4.txt', {
+    highWaterMark: 3
+});
+// rs.on('data'); 是流动模式用的 监听以后会一直自动触发
+// rs.on('readable',function(){);暂停模式用的 监听以后会先吧缓存区填满，等待着你自己消费
+// 回掉中使用rs.read(1)来读取
+// rs._readableState.length; // 缓存区的个数
+// 当你消费小于 highWaterMark 会自动添加highWaterMark这么多数据
+rs.on('readable', function () {
+    let result = rs.read(1);
+    console.log(result);
+    console.log(rs._readableState.length);
+});
+
+// LineReader行读取器
+// 需求是调取'line'事件后，每次读取一行数据
+// 首先每行肯定有一个换行回车
+// 在window下 回车是 \r\n 用ASCII表示就是 0x0d 0x0a
+// 在mac下 只是 \n 0x0a
+let fs = require('fs');
+let EventEmitter = require('events');
+
+class LineReader extends EventEmitter {
+    constructor(path) {
+        super();
+        this.RETURN = 0x0d;
+        this.LINE = 0x0a;
+        this.buffer = [];
+        this._rs = fs.createReadStream(path);
+        this.on('newListener', (eventName) => {
+            if (eventName === 'line') {
+                this._rs.on('readable', () => {
+                    let char;
+                    while (char = this._rs.read(1)) {
+                        let current = char[0];
+                        switch (current) {
+                            case this.RETURN:
+                                this.emit('line', Buffer.from(this.buffer).toString());
+                                this.buffer.length = 0;
+                                // 在window读取\r后 下一个字符可能是\n 如果是的话就吧\n 如果不是就表示他是一个正常的内容
+                                let c = this._rs.read(1);
+                                if (c[0] !== this.LINE) {
+                                    this.buffer.push(c[0]);
+                                }
+                                break;
+                            case this.LINE:
+                                this.emit('line', Buffer.from(this.buffer).toString());
+                                this.buffer.length = 0;
+                                break;
+                            default:
+                                this.buffer.push(current);
+                        }
+                    }
+                });
+                this._rs.on('end', () => {
+                    this.emit('line', Buffer.from(this.buffer).toString());
+                    this.buffer.length = 0
+                });
+            }
+        });
+    }
+}
+
+let lineReader = new LineReader('./5.txt');
+lineReader.on('line', function (data) {
+    console.log(data);
+});
+
+// 可读流暂停模式封装
+
+let fs = require('fs');
+let EventEmitter = require('events');
+
+function computeNewHighWaterMark(n) {
+    n--;
+    n |= n >>> 1;
+    n |= n >>> 2;
+    n |= n >>> 4;
+    n |= n >>> 8;
+    n |= n >>> 16;
+    n++;
+   return n;
+}
+class ReadStream extends EventEmitter {
+    constructor(path, options) {
+        super();
+        this.path = path;
+        this.highWaterMark = options.highWaterMark || 64 * 1024;
+        this.autoClose = options.autoClose || true;
+        this.start = 0;
+        this.end = options.end;
+        this.flags = options.flags || 'r';
+        this.buffers = []; // 缓存区 
+        this.pos = this.start;
+        this.length = 0; // 缓存区大小
+        this.emittedReadable = false;
+        this.reading = false; // 是不是正在读取的
+
+        this.open();
+        this.on('newListener', (eventName) => {
+            if (eventName === 'readable') {
+                this.read();
+            }
+        })
+    }
+    open() {
+        fs.open(this.path, this.flags, (err, fd) => {
+            if (err) {
+                this.emit('error', err);
+                if (this.autoClose) {
+                    this.destroy();
+                }
+                return
+            }
+            this.fd = fd;
+            this.emit('open');
+        });
+    }
+    read(n) {
+        if(n>this.length){
+            // 更改缓存区大小  读取五个就找 2的几次放最近的
+            this.highWaterMark = computeNewHighWaterMark(n)
+            this.emittedReadable = true;
+            this._read();
+        }
+
+        //如果n>0有值了，就是外面传的，去缓存区取
+        let buffer = null;
+        let index = 0; // 维护buffer的索引的
+        let flag = true;
+        if (n > 0 && n <= this.length) {
+            //在缓存区中取
+            buffer = Buffer.alloc(n);
+            let buf;
+            while (flag && (buf = this.buffers.shift())) {
+                for (let i = 0; i < buf.length; i++) {
+                    buffer[index++] = buf[i];
+                    if (index === n) {
+                        flag = false;
+                        this.length -= n;
+                        let bufferArr = buf.slice(i + 1); // 取出留下的部分
+                        if (bufferArr.length > 0) { // 如果有剩下的内容 再放入到缓存中
+                            this.buffers.unshift(bufferArr);
+                        }
+                        break;
+                    }
+                }
+            }
+
+        }
+        // 当前缓存区 小于highWaterMark时在去读取
+        if (this.length === 0) {
+            this.emittedReadable = true;
+        }
+        if (this.length < this.highWaterMark) {
+            if (!this.reading) {
+                this.reading = true;
+                this._read(); // 异步的
+            }
+        }
+        return buffer;
+    }
+    // 自己封装的读取的方法
+    _read() {
+        if (typeof this.fd !== 'number') {
+            return this.once('open', () => this._read());
+        }
+        let buffer = Buffer.alloc(this.highWaterMark);
+        fs.read(this.fd, buffer, 0, buffer.length, this.pos, (err, bytesRead) => {
+            if (bytesRead > 0) {
+                // 默认读取的内容放到缓存区中
+                this.buffers.push(buffer.slice(0, bytesRead));
+                this.pos += bytesRead;  //维护读取的索引
+                this.length += bytesRead; //维护缓存区的大小
+                this.reading = false;
+                // 是否需要触发readable事件
+                
+                if (this.emittedReadable) {
+                    this.emittedReadable = false;
+                    this.emit('readable');
+                }
+            } else {
+                this.emit('end');
+                this.destroy();
+            }
+        });
+    }
+    destroy() {
+        if (typeof this.fd !== 'number') {
+            return this.emit('close');
+        }
+        fs.close(this.fd, () => {
+            this.emit('close');
+        });
+    }
+}
+let rs = new ReadStream('./5.txt', {
+    flags: 'r',
+    autoClose: true,
+    encoding: 'utf8',
+    start: 0,
+    highWaterMark: 3
+});
+rs.on('readable', function () {
+    let result = rs.read(3);
+    console.log(result);
+});
