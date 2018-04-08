@@ -181,7 +181,7 @@ console.log(newStr);
 // 运行结果
 // 我叫(william),今年(9)岁
 
-// includes 是否包含
+// includes 是否包含（数组和字符串公用的方法）
 let str = 'abcdefg';
 console.log(str.indexOf('1'));
 console.log(str.includes('1'));
@@ -210,7 +210,7 @@ console.log(str);
 
 
 
-// 函数
+// 函数 （函数还有高阶函数，偏函数，函数柯里化）
 
 // 函数的默认参数
 function fn(str = '$') {
@@ -316,14 +316,14 @@ fn('$', 1, 2, 3, 4);
 // [ 1, 2, 3, 4 ]
 
 // ...展开运算符
-let arr=[1,2,3];
+let arr = [1, 2, 3];
 console.log(...arr);
 // 运行结果
 // 1 2 3
 // 用法对比
 // apply 可以改变this指向， 可以传参
-let arr=[5,7,31,2,3];
-console.log(Math.min.apply(Math,arr));
+let arr = [5, 7, 31, 2, 3];
+console.log(Math.min.apply(Math, arr));
 console.log(Math.min(...arr));
 // 运行结果
 // 2
@@ -332,30 +332,372 @@ console.log(Math.min(...arr));
 // 可以合并对象和数组
 // 数组的展开
 let arr = [];
-let arr1 = [1,2];
-let arr2 = [3,4];
-let newArr  = arr.concat(arr1,arr2);
+let arr1 = [1, 2];
+let arr2 = [3, 4];
+let newArr = arr.concat(arr1, arr2);
 //or
-let arr1 = [1,2];
-let arr2 = [3,4];
-let newArr = [...arr1,...arr2];
+let arr1 = [1, 2];
+let arr2 = [3, 4];
+let newArr = [...arr1, ...arr2];
 console.log(newArr);
 // 运行结果
 // [ 1, 2, 3, 4 ]
 
 // 对象的展开
-let school = {name:'zfpx',age:9};
-let me = {name:'jw',address:'回龙观'}
+let school = { name: 'zfpx', age: 9 };
+let me = { name: 'jw', address: '回龙观' }
 
-let obj = {...school,...me};
+let obj = { ...school, ...me };
 console.log(obj);
 // 运行结果
 // { name: 'jw', age: 9, address: '回龙观' }
 
 // assign和展开运算符可以算是等价的
-let school = {name:'zfpx',age:9};
-let me = {name:'jw',address:'回龙观'}
-let result = Object.assign(school,me);
-console.log(result); 
+let school = { name: 'zfpx', age: 9 };
+let me = { name: 'jw', address: '回龙观' }
+let result = Object.assign(school, me);
+console.log(result);
+
+// 深度clone
+// JSON.parse(JSON.stringify());
+// 这个方法有个缺点就是不能拷贝函数和正则
+
+let school = { name: 'zfpx', age: { age: 1 }, fn: function () { }, reg: /\d+/ }
+let result = JSON.parse(JSON.stringify(school));
+school.age.age = 2;
+console.log(result);
+// 运行结果
+// { name: 'zfpx', age: { age: 1 }, reg: {} }
+
+// 递归拷贝
+
+// let school = { name: 'zfpx', age: { age: 1 }, arr: [1, 2, 3], fn: function () { }, reg: /\d+/ }
+let school = [{ a: 1, b: [1, 1], fn: function () { } }, [1, 1], /\d+/, null]
+function deepClone(parent) {
+    let child;
+    let type = Object.prototype.toString.call(parent);
+    switch (type) {
+        case '[object Array]':
+            child = [];
+            for (let i = 0; i < parent.length; i++) {
+                child[i] = deepClone(parent[i]);
+            }
+            break;
+        case '[object Object]':
+            child = {};
+            for (let key in parent) {
+                child[key] = deepClone(parent[key]);
+            }
+            break;
+        default:
+            child = parent;
+            break;
+    }
+    return child;
+}
+let result = deepClone(school);
+result[0].a = 2;
+result[1][0] = 2;
+console.log(school);
+// 运行结果
+// [ { a: 1, b: [ 1, 1 ], fn: [Function: fn] },[ 1, 1 ],/\d+/,null ]
+
+
+let school = [{ a: 1, b: [2, 3], fn: function () { } }, [4, 5], /\d+/, null, 'aaaa', undefined]
+function deepClone(parent) {
+    let type = Object.prototype.toString.call(parent);
+    let child = type === '[object Array]' ? [] : type === '[object Object]' ? {} : parent;
+    console.log(child == parent);
+    console.log(child);
+    console.log(parent);
+    if (child != parent) {
+        for (let key in parent) {
+            child[key] = deepClone(parent[key]);
+        }
+    }
+    return child;
+}
+let result = deepClone(school);
+result[0].a = 222
+result[1][0] = 222;
+console.log(school);
+console.log(result);
+// 运行结果
+// [ { a: 1, b: [ 1, 1 ], fn: [Function: fn] },[ 1, 1 ],/\d+/,null ]
+
+
+
+
+// 数组
+
+// Array.from() 将类数组转化为数组 等价于 Array.prototype.slice.call();
+// 常见的类数组 arguments domCollection
+let result = Array.from({ 0: 1, 1: 2, length: 3 });
+console.log(result);
+// 运行结果
+// [ 1, 2, undefined ]
+let result = Array.prototype.slice.call({ 0: 1, 1: 2, length: 2 }, 0);
+// 运行结果
+// [ 1, 2, undefined ]
+
+// Array.of()  Array()  file()
+console.log(Array.of(3));// [3]
+console.log(Array(3)); // [ <3 empty items> ]
+console.log(Array(3).fill(3)); // [ 3, 3, 3 ]
+
+// reduce map filter some every forEach es5
+// find findIndex es6
+// includes es7
+
+
+// reduce 叠加
+// 求和
+let result = [1, 2, 3, 4, 5].reduce((prev, next, index, current) => {
+    console.log(prev, next, index, current);
+    return prev + next;
+}, 15);  // 手动改变数组的第一项，数组的长度不变
+console.log(result);
+// 运行结果
+// 15 1 0 [ 1, 2, 3, 4, 5 ]
+// 16 2 1 [ 1, 2, 3, 4, 5 ]
+// 18 3 2 [ 1, 2, 3, 4, 5 ]
+// 21 4 3 [ 1, 2, 3, 4, 5 ]
+// 25 5 4 [ 1, 2, 3, 4, 5 ]
+// 30
+
+// 求平均数
+let result = [1, 2, 3, 4, 5].reduce((prev, next, index, current) => {
+    if (index === current.length - 1) return (prev + next) / current.length
+    return prev + next;
+});
+console.log(result);
+// 运行结果
+// 3
+
+// reduce 封装
+
+Array.prototype.myReduce = function (callback, pre) {
+    let prev = pre || this[0];
+    for (let i = pre ? 0 : 1; i < this.length; i++) {
+        prev = callback(prev, this[i], i, this);
+    }
+    return prev;
+}
+let result = [1, 2, 3, 4, 5].myReduce((prev, next, index, current) => {
+    console.log(prev, next, index, current);
+    if (index === current.length - 1) return (prev + next) / current.length
+    return prev + next;
+}, 15);
+console.log(result);
+// 运行结果
+// 15 1 0 [ 1, 2, 3, 4, 5 ]
+// 16 2 1 [ 1, 2, 3, 4, 5 ]
+// 18 3 2 [ 1, 2, 3, 4, 5 ]
+// 21 4 3 [ 1, 2, 3, 4, 5 ]
+// 25 5 4 [ 1, 2, 3, 4, 5 ]
+// 6
+
+
+// map 
+let arr = ['williamlau', '大志'];
+let newArr = arr.map(function (item) {
+    return (
+        `<il>
+            <span>${item}</span>
+        </li>`
+    );
+});
+let str = `
+    <ul>
+        ${newArr.join()}
+    </ul>
+`;
+console.log(str);
+// 运行结果
+// <ul>
+//     <il>
+//         <span>williamlau</span>
+//     </li>,<il>
+//         <span>大志</span>
+//     </li>
+// </ul>
+
+// filter 过滤 返回true表示当前想留下，返回false 表示不留
+let filterArr = [1, 2, 3, 4, 5].filter((item, index) => {
+    if (item > 3) return true;
+});
+console.log(filterArr);
+
+// filter 封装 
+Array.prototype.myFilter = function (callback) {
+    let arr = [];
+    for (let i = 0; i < this.length; i++) {
+        callback(this[i], i) ? arr.push(this[i]) : void 0;
+    }
+    return arr;
+}
+let filterArr = [1, 2, 3, 4, 5].myFilter((item, index) => {
+    if (item > 3) return true;
+});
+console.log(filterArr);
+// 运行结果
+// [4, 5]
+
+// some,every 查找数组中是否包含某一项
+// some找true找到了返回true  every找false找到了返回false
+let flag = [1, 2, 3].some(function (item, index) {
+    return item === 2
+});
+console.log(flag);
+
+// includes 是否包含（数组和字符串公用的方法）
+let str = 'abcdefg';
+console.log(str.indexOf('1'));
+console.log(str.includes('1'));
+// 运行结果
+// -1
+// false
+
+
+
+// 对象
+
+// 对象可以简写，如果key和value相等则可以简写
+let name = 'zfpx';
+let age = 9
+let obj = {
+    name,
+    age,
+    fn() {           // 等价于普通函数，有this指向的，而非箭头函数
+        console.log(this)
+    }
+};
+obj.fn();
+
+
+// Object.setPrototypeOf() 设置原型链
+let o2 = {
+    age: 18,
+}
+let o1 = {
+    name: 'zfpx',
+}
+Object.setPrototypeOf(o1, o2);
+console.log(o1.age);
+// 运行结果
+// 18
+
+// 等价于以前的老写法
+let o2 = {
+    age: 18,
+}
+let o1 = {
+    name: '1111',
+    __proto__: o2,
+}
+console.log(o1.age);
+// 运行结果
+// 18
+
+// 从o1取o2里的name （从原型链上拿东西）用super
+// super在子对象中指向的是__proto__对应的内容
+let o2 = {
+    age: 18,
+    name: '2222'
+}
+let o1 = {
+    name: '1111',
+    __proto__: o2,
+    getO2Name() {
+        return super.name;
+    }
+}
+console.log(o1.getO2Name());
+// 运行结果
+// 2222
+
+// 等价于以前的老写法
+let o2 = {
+    age: 18,
+    name: '2222'
+}
+let o1 = {
+    name: '1111',
+    __proto__: o2,
+}
+console.log(o1.__proto__.name);
+// 运行结果
+// 2222
+
+
+// 类 以前就是构造函数
+
+// 继承
+function Parent() {
+    // 类里面的都是类的私有属性
+    this.name = 'aaaa';
+}
+Parent.prototype.smoking = function () {    // 共有的
+    console.log('吸烟');
+}
+function Child(){
+}
+// 这种方法会也继承私有方法
+Child.prototype = new Parent();
+let child = new Child;
+console.log(child.constructor);
+console.log(child.name);
+console.log(child.smoking);
+// 运行结果
+// [Function: Parent]
+// aaaa
+// [Function]
+
+//只继承共有方法
+function Parent() {
+    this.name = 'aaaa';
+}
+Parent.prototype.smoking = function () {
+    console.log('吸烟');
+}
+function Child(){
+}
+// 这种方法会也继承私有方法
+Child.prototype = Object.create(Parent.prototype);
+let child = new Child;
+console.log(child.constructor);
+console.log(child.name);
+console.log(child.smoking);
+// 运行结果
+// [Function: Parent]
+// undefined
+// [Function]
+
+// 实现方法
+function Parent() {
+    this.name = 'aaaa';
+}
+Parent.prototype.smoking = function () {
+    console.log('吸烟');
+}
+function Child(){
+}
+function create(parentProto,param){
+    function Fn(){}; // 相当于构建一个类 类的原型链指向了父类的原型
+    Fn.prototype = parentProto;
+    let fn = new Fn();
+    // 手动改变constructor的指向
+    fn.constructor = param.constructor.value;
+    return fn;
+}
+// 儿子查找时 可以查找到父类的原型，所以可以拿到父类的公共方法
+Child.prototype =create(Parent.prototype,{constructor:{value:Child}});
+let child = new Child;
+console.log(child.constructor);
+console.log(child.name);
+console.log(child.smoking);
+    
+
+
 
 
