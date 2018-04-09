@@ -630,17 +630,18 @@ console.log(o1.__proto__.name);
 // 2222
 
 
-// 类 以前就是构造函数
+// 类 以前就是构造函数 面向对象中的类
 
 // 继承
 function Parent() {
     // 类里面的都是类的私有属性
     this.name = 'aaaa';
 }
-Parent.prototype.smoking = function () {    // 共有的
+Parent.prototype.smoking = function () {    // 共有的方法
     console.log('吸烟');
 }
-function Child(){
+Parent.fn = function () { }; //这是Parent的静态属性
+function Child() {
 }
 // 这种方法会也继承私有方法
 Child.prototype = new Parent();
@@ -660,7 +661,7 @@ function Parent() {
 Parent.prototype.smoking = function () {
     console.log('吸烟');
 }
-function Child(){
+function Child() {
 }
 // 这种方法会也继承私有方法
 Child.prototype = Object.create(Parent.prototype);
@@ -680,10 +681,10 @@ function Parent() {
 Parent.prototype.smoking = function () {
     console.log('吸烟');
 }
-function Child(){
+function Child() {
 }
-function create(parentProto,param){
-    function Fn(){}; // 相当于构建一个类 类的原型链指向了父类的原型
+function create(parentProto, param) {
+    function Fn() { }; // 相当于构建一个类 类的原型链指向了父类的原型
     Fn.prototype = parentProto;
     let fn = new Fn();
     // 手动改变constructor的指向
@@ -691,13 +692,168 @@ function create(parentProto,param){
     return fn;
 }
 // 儿子查找时 可以查找到父类的原型，所以可以拿到父类的公共方法
-Child.prototype =create(Parent.prototype,{constructor:{value:Child}});
+Child.prototype = create(Parent.prototype, { constructor: { value: Child } });
 let child = new Child;
 console.log(child.constructor);
 console.log(child.name);
 console.log(child.smoking);
-    
 
 
 
+// 继承静态属性
+function Parent() {
+    this.name = 'aaaa';
+}
+Parent.fn = function () {
+    console.log('静态属性');
+}; //这是Parent的静态属性
+Parent.prototype.smoking = function () {
+    console.log('吸烟');
+}
+function Child() {
+}
+Child.prototype = Object.create(Parent.prototype, { constructor: { value: Child } });
+let child = new Child;
+Child.__proto__ = Parent    //继承静态属性
+Child.fn();
 
+// 定义属性的一种方法
+let obj = {};
+Object.defineProperty(obj, 'a', {
+    enumerable: true, // 可枚举 不可枚举就不能取出来
+    configurable: true, // 可配置 不可配置不能删除
+    writable: true,     // 可更改 
+    value: 'aaa'
+});
+// delete obj.a
+console.log(obj);
+
+
+// es6中的类 不new 不能调用
+class Parent {
+    constructor(name) {  // 私有属性
+        this.name = name
+    }
+
+    getName() {  //  共有属性
+        return this.name
+    }
+    static fn() {   //静态方法
+        return 100;
+    }
+}
+// es6的extends方法可以继承私有属性，也可以继承公有属性，还可以继承静态方法
+// 静态方法只能类调用 而且可以继承 
+class Child extends Parent {
+    constructor(name, age) {
+        super(name); // 子类有构造函数必须使用super 等价于Parent.call(this,name)
+        this.age = age;
+    }
+}
+
+let child = new Child('zf', 9);
+console.log(child.name);
+
+
+
+// 模拟es6的class用法
+let Parent = function () {
+    function Parent() {
+        // 类的调用检测
+        _classCallCheck(this, Parent);
+        // return {a:100}
+    }
+    _createClass(Parent,
+        [ // 描述公共方法
+            {
+                key: 'getName', value: function () {
+                    return 1000;
+                }
+            }
+        ], [ // 描述静态的方法
+            {
+                key: 'fn', value: function () {
+                    return 100;
+                }
+            }
+        ]
+    )
+    return Parent;
+}()
+// 类的调用检测
+function _classCallCheck(instance, constructor) { //检查当前类  有没有new出来的 new出来的函数this指向当前的函数，没有new的函数因为是window调用的，所以this指向的window
+    if (!(instance instanceof constructor)) throw Error('without new');
+}
+// 对不同的属性做处理 如果是原型上的方法挂载Class.prototype上，如果是静态方法放在Class上
+function _createClass(con, protoProperty, staticProperty) {
+    if (protoProperty) {
+        defineProperties(con.prototype, protoProperty);
+    }
+    if (staticProperty) {
+        defineProperties(con, staticProperty);
+    }
+}
+// 负责将原型的方法,静态方法定义在 构造函数上
+function defineProperties(constructor, properties) {
+    for (let i = 0; i < properties.length; i++) {
+        let obj = { ...properties[i], enumerable: true, writeable: true, configurable: true };
+        Object.defineProperty(constructor, properties[i].key, obj);
+    }
+}
+// 子类继承父类的方法
+function _inherits(subClass, superClass) {
+    // 子类继承父类的公有方法
+    subClass.prototype = Object.create(superClass.prototype, { constructor: { value: subClass } });
+    // 子类继承父类的静态方法
+    subClass.__proto__ = superClass;
+}
+let Child = function (Parent) {  // 用封闭空间传参表示子类可以继承父类
+    _inherits(Child, Parent); // 子类继承父类的方法
+    function Child() {
+        _classCallCheck(this, Child); // 类的调用检查
+        let that = this;
+        let obj = Object.getPrototypeOf(Child).call(this); // Child.__proto__ 继承父类的私有方法
+        if (typeof obj === 'object') { //如果是对象就把obj做为实例
+            that = obj;
+        }
+        return that;
+    }
+    return Child;
+}(Parent)
+
+let child = new Child;
+console.log(child.getName());
+
+// set && map
+
+// set 数组去重
+let set = new Set([1, 2, 3, 4, 5, 5, 4, 3]);
+console.log(Array.from(set));
+console.log([...set]);
+// 运行结果
+// [ 1, 2, 3, 4, 5 ]
+// [ 1, 2, 3, 4, 5 ]
+
+let set = new Set([1, 2, 3, 4, 5, 5, 4, 3]);
+set.add(6);
+console.log(Array.from(set));
+// 运行结果
+// [ 1, 2, 3, 4, 5, 6 ]
+
+let set = new Set([1, 2, 3, 4, 5, 5, 4, 3]);
+set.delete(2);
+console.log(Array.from(set));
+// 运行结果
+// [ 1, 3, 4, 5, ]
+
+let set = new Set([1, 2, 3, 4, 5, 5, 4, 3]);
+console.log(set.has(2));
+// 运行结果
+// true
+
+// map 键值对
+let map = new Map();
+map.set('js', [1, 2, 3]);
+map.set('js', [4, 5, 6]);
+console.log(map.has('js'));
+console.log(map);
