@@ -1071,7 +1071,7 @@ function computeNewHighWaterMark(n) {
     n |= n >>> 8;
     n |= n >>> 16;
     n++;
-   return n;
+    return n;
 }
 class ReadStream extends EventEmitter {
     constructor(path, options) {
@@ -1109,7 +1109,7 @@ class ReadStream extends EventEmitter {
         });
     }
     read(n) {
-        if(n>this.length){
+        if (n > this.length) {
             // 更改缓存区大小  读取五个就找 2的几次放最近的
             this.highWaterMark = computeNewHighWaterMark(n)
             this.emittedReadable = true;
@@ -1166,7 +1166,7 @@ class ReadStream extends EventEmitter {
                 this.length += bytesRead; //维护缓存区的大小
                 this.reading = false;
                 // 是否需要触发readable事件
-                
+
                 if (this.emittedReadable) {
                     this.emittedReadable = false;
                     this.emit('readable');
@@ -1197,3 +1197,84 @@ rs.on('readable', function () {
     let result = rs.read(3);
     console.log(result);
 });
+
+// 自定义流
+// 读
+let { Readable } = require('stream');
+// 想实现什么流 就继承这个流
+// Readable里面有一个read()方法，默认掉_read()
+// Readable中提供了一个push方法你调用push方法就会触发data事件
+let index = 9;
+class MyRead extends Readable {
+    _read() {
+        // 可读流什么时候停止呢？ 当push null的时候停止
+        if (index-- > 0) return this.push('123');
+        this.push(null);
+    }
+}
+let mr = new MyRead;
+mr.on('data', function (data) {
+    console.log(data);
+});
+
+// 写
+let {Writable} = require('stream');
+// 可写流实现_write方法
+// 源码中默认调用的是Writable中的write方法
+class MyWrite extends Writable{
+    _write(chunk,encoding,callback){
+        callback(); // clearBuffer
+    }
+}
+let mw = new MyWrite();
+mw.write('珠峰','utf8',()=>{
+    console.log(1);
+})
+mw.write('珠峰','utf8',()=>{
+    console.log(1);
+});
+
+
+// 双工流 又能读 又能写，而且读取可以没关系(互不干扰);
+let {Duplex} =  require('stream');
+let d = Duplex({
+    read(){
+        this.push('hello');
+        this.push(null)
+    },
+    write(chunk,encoding,callback){
+        console.log(chunk);
+        callback();
+    }
+});
+d.on('data',function(data){
+    console.log(data);
+});
+d.write('hello');
+
+
+// tranform流（转化流）
+// 他就是duplex 他不需要实现read write,实现的叫transform
+// 他的参数和可写流一样
+
+// 需要命令行运行
+let {Transform} =  require('stream');
+
+let tranform1 = Transform({
+    transform(chunk,encoding,callback){
+        this.push(chunk.toString().toUpperCase()); // 将输入的内容放入到可读流中
+        callback();
+    }
+});
+let tranform2 = Transform({
+    transform(chunk,encoding,callback){
+        console.log(chunk.toString());
+        callback();
+    }
+});
+// 等待你的输入
+// rs.pipe(ws);
+// 希望将输入的内容转化成大写在输出出来
+process.stdin.pipe(tranform1).pipe(tranform2);
+// 对象流 可读流里只能放buffer或者字符串 对象流里可以放对象
+// 输入以后转化以后再输出

@@ -257,24 +257,218 @@ Promise.prototype.then = function (onFulfilled, onRejected) {  //判断onFulfill
     }
     return promise2;
 }
+// catch 捕获错误的方法 原理就是一个then(null,function(){})
+Promise.prototype.catch = function (callback) {
+    return this.then(null, callback)
+}
+// promise.all 方法
+Promise.all = function (promises) { //promises是一个promise的数组
+    return new Promise(function (resolve, reject) {
+        let arr = []; //arr是最终返回值的结果
+        let i = 0; // 表示成功了多少次
+        function processData(index, y) {
+            arr[index] = y;
+            if (++i === promises.length) {
+                resolve(arr);
+            }
+        }
+        for (let i = 0; i < promises.length; i++) {
+            promises[i].then(function (y) {
+                processData(i, y)
+            }, reject)
+        }
+    })
+}
+// Promise.race 方法
+Promise.race = function (promises) {
+    return new Promise(function (resolve, reject) {
+        for (var i = 0; i < promises.length; i++) {
+            promises[i].then(resolve, reject)
+        }
+    })
+}
+// 生成一个成功的promise
+Promise.resolve = function (value) {
+    return new Promise(function (resolve, reject) {
+        resolve(value);
+    })
+}
+// 生成一个失败的promise
+Promise.reject = function (reason) {
+    return new Promise(function (resolve, reject) {
+        reject(reason);
+    })
+}
+// 添加测试用例
+Promise.defer = Promise.deferred = function () {
+    let dfd = {};
+    dfd.promise = new Promise(function (resolve, reject) {
+        dfd.resolve = resolve;
+        dfd.reject = reject;
+    });
+    return dfd;
+}
+
+// 普通用法
 let p = new Promise(function (resolve, reject) {
     resolve('成功')
 });
 p.then(function (data) {
     console.log(data);
-}, function (err) {
+}).catch(function (err) {
     console.log(err);
 });
-// 运行结果
-// 成功
 
+// Promise.all
+let fs = require('fs');
+function read(url) {
+    return new Promise(function (resolve, reject) {
+        fs.readFile(url, 'utf8', function (err, data) {
+            if (err) reject(err);
+            resolve(data);
+        })
+    })
+}
+Promise.all([read('./5.txt'), read('./4.txt')]).then(function (data) {
+    console.log(data);
+})
+
+// Promise.race
+function read(url) {
+    return new Promise(function (resolve, reject) {
+        require('fs').readFile(url, 'utf8', function (err, data) {
+            if (err) reject(err);
+            resolve(data);
+        })
+    })
+}
+Promise.race([read('./2.promise/1.txt'), read('./2.promise/2.txt')]).then(function (data) {
+    console.log(data)
+})
+
+// Promise.resolve
+Promise.resolve([1, 2, 3]).then(function (data) {
+    console.log(data);
+});
+
+//Promise.resolve
+Promise.reject([1, 2, 3]).then(null, function (err) {
+    console.log('err', err)
+});
+
+// 测试用例用法
+// 下载一个Promise的测试库,promises-aplus-tests,
+// npm install -g 文件名  运行
+let fs = require('fs');
+function read() {
+    let defer = Promise.defer();
+    fs.readFile('./1.txt', 'utf8', function (err, data) {
+        if (err) defer.reject(err);
+        defer.resolve(data);
+    });
+    return defer.promise;
+
+}
+read().then(function (data) {
+    console.log(data);
+});
+
+// Promise Q库 已经没人用了
+// 需要下载 npm install q
+
+let Promise = require('./Promise.js');
+function read(url) {
+    return new Promise(function (resolve, reject) {
+        require('fs').readFile(url, 'utf8', function (err, data) {
+            if (err) reject(err);
+            resolve(data);
+        })
+    })
+}
+let Q = require('q');
+Q.all([read('./1.txt'), read('./2.txt')]).then(function ([a1, a2]) {
+    console.log(a1, a2)
+});
+// 同 Promise.all
+Q.fcall(function () {
+    return 100;
+}).then(function (data) {
+    console.log(data);
+})
+// defer
+let Q = require('q');
+function read(url) {
+    let defer = Q.defer();
+    require('fs').readFile(url, 'utf8', function (err, data) {
+        if (err) defer.reject(err);
+        defer.resolve(data);
+    })
+    return defer.promise
+}
+read('./2.promise/1.txt').then(function (data) {
+    console.log(data);
+});
+
+
+// blueBird 已经被node吞并
+// 将方法promise化
+// npm install bluebird （现在已经不用下载）
+let fs = require('fs');
+let bluebird = require('bluebird');
+let read = bluebird.promisify(fs.readFile);
+read('./1.txt', 'utf8').then(function (data) {
+    console.log(data);
+});
+
+// blueBird实现原理
+// promise化
+let fs = require('fs');
+function promisify(fn) {  // 将回调函数在内部进行处理
+    return function (...args) {
+        return new Promise(function (resolve, reject) {
+            fn(...args, function (err, data) {
+                if (err) reject(err);
+                resolve(data);
+            })
+        })
+    }
+}
+// 将所有方法全部promise化
+// keys es5将对象转化成数组的方法
+function promisifyAll(obj) {
+    Object.keys(obj).forEach(key => {
+        if (typeof obj[key] === 'function') {
+            obj[key + 'Async'] = promisify(obj[key])
+        }
+    })
+}
+promisifyAll(fs); // 将所有的方法全部增加一个promise化
+fs.readFileAsync('./1.txt', 'utf8').then(function (data) {
+    console.log(data);
+});
 
 
 
 // generator (迭代器)
+// 会将函数分割出好多部分调用一次next就会继续向下执行
 // 配合promise
 // generator也是一个函数，和普通函数不一样，可以有暂停的功能
 // 迭代器就是有next方法的，没次调用后都会返回一个done和一个叫value的属性
+
+// generator 用法
+// 可以配置yield 
+function* read(arrs) {
+    yield arrs[0];
+    yield arrs[1];
+    yield arrs[2];
+}
+let it = read(['react', 'vue', 'angular']);
+let flag = true
+do {
+    let { done, value } = it.next();
+    flag = done;
+    console.log(value);
+} while (!flag);
 
 // 迭代器的实现原理
 function read(arrs) {
@@ -320,17 +514,122 @@ do {
 // angular
 // undefined
 
-// generator 用法
-// 可以配置yield 
-function* read(arrs) {
-    yield arrs[0];
-    yield arrs[1];
-    yield arrs[2];
+// yield后面跟着的是value的值
+// yield等号前面的是我们当前调用next传进来的值
+// 第一次next传值是无效的
+function* read(n) {
+    console.log(n);
+    let a = yield '一';
+    console.log(a);
+    let b = yield '二'
+    console.log(b);
+    return b;
 }
-let it = read(['react', 'vue', 'angular']);
-let flag = true
-do {
-    let { done, value } = it.next();
-    flag = done;
-    console.log(value);
-} while (!flag);
+let it = read(111);
+console.log(it.next());
+console.log(it.next('1'));
+console.log(it.next('2'));
+console.log(it.next('3'));
+// 运行结果
+// 111
+// { value: '一', done: false }
+// 1
+// { value: '二', done: false }
+// 2
+// { value: '2', done: true }
+// { value: undefined, done: true }
+
+// generator配合promise
+
+let fs = require('fs');
+let blueBird = require('blueBird');
+let read = blueBird.promisify(fs.readFile);
+function* r() {
+    let content1 = yield read('./1.txt', 'utf8');
+    let content2 = yield read(content1, 'utf8');
+    return content2;
+}
+let it = r();
+it.next().value.then(function (data) {
+    console.log(data);
+    it.next(data).value.then(function (data) {
+        console.log(data);
+    });
+});
+// 运行结果
+// /2.txt
+// ﻿�Һ�˧
+
+// co库
+// npm install co
+// 可以自动的将generator进行迭代
+let fs = require('fs');
+let co = require('co');
+let blueBird = require('blueBird');
+let read = blueBird.promisify(fs.readFile);
+function* r() {
+    let content1 = yield read('./1.txt', 'utf8');
+    let content2 = yield read(content1, 'utf8');
+    return content2;
+}
+
+co(r()).then(function (data) {
+    console.log(data);
+});
+
+// 封装co 原理就是一个递归
+let fs = require('fs');
+let blueBird = require('blueBird');
+let read = blueBird.promisify(fs.readFile);
+function* r() {
+    let content1 = yield read('./1.txt', 'utf8');
+    let content2 = yield read(content1, 'utf8');
+    return content2;
+}
+function co(it) {
+    return new Promise(function (resolve, reject) {
+        function next(d) {
+            let { value, done } = it.next(d);
+            if (!done) {
+                value.then(function (data) {
+                    next(data)
+                }, reject)
+            } else {
+                resolve(value);
+            }
+        }
+        next();
+    });
+}
+co(r()).then(function (data) {
+    console.log(data)
+})
+
+
+// async await
+// 等价于generator + co
+// 用async 来修饰函数，aysnc需要配await,await只能跟promise
+let fs = require('fs');
+let blueBird = require('blueBird');
+let read = blueBird.promisify(fs.readFile);
+async function r() {
+    try {
+        let content1 = await read('./2.promise/100.txt', 'utf8');
+        let content2 = await read(content1, 'utf8');
+        return content2;
+    } catch (err) {
+        console.log('err', err)
+    }
+}
+r().then(function (data) {
+    console.log(data);
+});
+
+// async / await 解决的问题有哪些
+// 1.回调地狱
+// 2.并发执行异步，在同一时刻同步返回结果 Promise.all
+// 3.解决了返回值的问题
+// 4.可以实现代码的try/catch;
+
+
+
