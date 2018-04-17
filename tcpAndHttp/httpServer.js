@@ -9,9 +9,9 @@ let server = http.createServer(function (req, res) {
     req.on('end', function () {
         let content = Buffer.concat(buffers).toString()
         if(contentType === 'application/json'){
-            console.log(JSON.parse(content).name)
+            console.log(JSON.parse(content))
         }else if(contentType === 'application/x-www-form-urlencoded'){
-            console.log(queryString.parse(content).name)
+            console.log(queryString.parse(content))
         }
         res.end('hello');
     });

@@ -23,7 +23,7 @@ console.log(urlObj.pathname); // 路径
 
 
 // http
-// http是应用层，是基于http的
+// http是应用层，是基于tcp的
 // http特点
 // 1.长连接
 // 意思就是经过三次握手以后就持续的，不停的发请求和响应
@@ -66,11 +66,12 @@ let http = require('http');
 // 或者
 // 创建服务
 let server = http.createServer();
-// 监听请求的到来
 // req是可读流
 // res是可写流
 // http(req)
+// 监听请求的到来
 server.on('request', function (req, res) {
+    let contentType = req.headers['content-type'];
     let method = req.method;
     let httpVersion = req.httpVersion
     let headers = req.headers;
