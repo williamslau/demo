@@ -231,7 +231,7 @@ server.on('request', function (req, res) {
         }).sort((lang1, lang2) => lang2.q - lang1.q);
         console.log(arrs);
     }
-    res.setHeader('Content-Type','text/plain;charset=utf8');
+    res.setHeader('Content-Type', 'text/plain;charset=utf8');
     for (let i = 0; i < arrs.length; i++) {
         let name = arrs[i].name;
         if (pack[name]) {
@@ -244,4 +244,39 @@ server.on('request', function (req, res) {
 
 
 // 防盗链
-
+let fs = require('fs');
+let path = require('path');
+let http = require('http');
+let url = require('url');
+let getHostName = (str) => {
+    let { hostname } = url.path(str, true);
+    return hostname;
+}
+let server = http.createServer(function (req, res) {
+    let refer = req.headers['referer'] || req.headers['referrer'];
+    // 先看一下啊refer的值 ，还要看图片的请求路径
+    // 要读取文件 返回给客户端
+    let { pathname } = url.parse(req.url, true);
+    let p = path.join(__dirname, 'public', '.' + pathname);
+    fs.stat(p, function (err) {
+        if (!err) {
+            if (refer) {
+                let referHostName = getHostName(refer);
+                let host = req.headers['host'].split(':')[0];
+                if (referHostName != host && !whitList.includes(referHostName)) {
+                    // 防盗链
+                    fs.createReadStream(path.join(__dirname, 'public', './2.jpg')).pipe(res);
+                } else {
+                    // 正常显示
+                    fs.createReadStream(p).pipe(res);
+                }
+            } else {
+                // 正常显示
+                fs.createReadStream(p).pipe(res);
+            }
+        } else {
+            res.end();
+        }
+    });
+});
+server.listen(9999);
