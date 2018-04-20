@@ -280,3 +280,87 @@ let server = http.createServer(function (req, res) {
     });
 });
 server.listen(9999);
+
+// 范围请求（分段请求，断点续传）
+// 请求头部加 Accept-Ranges:bytes
+// 见rangesServer.js和rangesClient.js
+// 使用新方法 http.get(options,function(res){});
+
+
+// 加密 crypto模块
+// 加密算法，加密完可以解迷
+// md5并不是加密算法，因为他是不可你的，属于摘要
+// md5的特点 1 不可逆 2 不同的内容输出的结果不同 3 相同的内容输出的一定一样 4 最终加密的结果长度一样
+let crypto = require('crypto');
+let md5 = crypto.createHash('md5');
+md5.update('williamlau');
+let result = md5.digest('hex'); // hex是16进制 还有base64,latin1, 一般都用hex
+console.log(result);
+
+// md5 加密一个很大的文件
+let crypto = require('crypto');
+let md5 = crypto.createHash('md5');
+let path = require('path');
+let fs = require('fs');
+let rs = fs.createReadStream(path.join(__dirname, './5.txt'), { highWaterMark: 2 });
+rs.on('data', function (chunk) {
+    md5.update(chunk);
+});
+rs.on('end', function () {
+    let result = md5.digest('hex');
+    console.log(result);
+});
+// 等价于
+let fs = require('fs');
+let path = require('path');
+let crypto = require('crypto');
+let md5 = crypto.createHash('md5');
+let content = fs.readFileSync(path.join(__dirname, './5.txt'));
+md5.update(content);
+let result = md5.digest('hex');
+console.log(result);
+
+// Hmac 加盐算法(摘要) 可以根据一个所谓的密钥进行加密
+let crypto = require('crypto');
+let m = crypto.createHmac('sha1', 'key');
+m.update('williamlau');
+console.log(m.digest('hex'));
+
+// 加盐算法可以通过命令行生成一个key
+// 生成公钥
+// openssl genrsa -out rsa_private.key 1024
+let fs = require('fs');
+let path = require('path');
+let crypto = require('crypto');
+let m = crypto.createHmac('sha1', fs.readFileSync(path.join(__dirname, 'rsa_private.key')));
+m.update('williamlau');
+console.log(m.digest('hex'));
+
+// 对称加密 用一把钥匙可以加密，也可以解密
+var fs = require('fs');
+let path = require('path');
+var crypto = require('crypto');
+let str = 'williamlau';
+let private = fs.readFileSync(path.join(__dirname, 'rsa_private.key'));
+let cipher = crypto.createCipher('blowfish', private);
+let encry = cipher.update(str, 'utf8', 'hex');
+encry += cipher.final('hex');
+console.log(encry);
+
+let deciper = crypto.createDecipher('blowfish', private);
+let deEncry = deciper.update(encry, 'hex', 'utf8');
+deEncry += deciper.final('utf8');
+console.log(deEncry);
+
+// 非对称加密 用两把加密解密 ，公钥加密，私钥解密
+// 生成私钥
+// openssl rsa -in rsa_private.key -pubout -out rsa_public.key
+var fs = require('fs');
+let path = require('path');
+var crypto = require('crypto');
+let cert = fs.readFileSync(path.join(__dirname, 'rsa_public.key')); // 公钥
+let key = fs.readFileSync(path.join(__dirname, 'rsa_private.key')); // 私钥
+let public = crypto.publicEncrypt(cert, Buffer('williamlau'));    //公钥加密
+console.log(public.toString());
+let private = crypto.privateDecrypt(key, public);   //私钥解密
+console.log(private.toString());
