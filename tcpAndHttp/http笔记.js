@@ -364,3 +364,21 @@ let public = crypto.publicEncrypt(cert, Buffer('williamlau'));    //公钥加密
 console.log(public.toString());
 let private = crypto.privateDecrypt(key, public);   //私钥解密
 console.log(private.toString());
+
+// 签名 是传输数据判断服务端和客户端是不是同一个
+// 甲 用RSA-SHA256 加密 createSign出一个签名,'字符串' 发给乙方
+// 乙方用这个签名，和公钥进行验证 还有内容 看是不是同一个东西
+// 为了鉴别甲方和乙方的数据是相同的
+let fs = require('fs');
+let path = require('path');
+let crypto = require('crypto');
+let public = fs.readFileSync(path.join(__dirname,'./rsa_public.key'))
+let private = fs.readFileSync(path.join(__dirname,'./rsa_private.key'))
+let s  = crypto.createSign('RSA-SHA256');
+s.update('williamlau');
+let signed = s.sign(private,'hex')
+let v = crypto.createVerify('RSA-SHA256');
+v.update('williamlau');
+
+console.log(v.verify(public, signed, 'hex'));
+
