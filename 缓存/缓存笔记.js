@@ -14,9 +14,32 @@
 // 如果没有，返回200，返回数据
 
 // 搭建一个简单的静态服务
-let http = require('http');
+let fs = require('fs');
 let url = require('url');
+let http = require('http');
+let path = require('path');
+let mime = require('mime');  // 获取文件类型的 Content-Type
 let server = http.createServer(function (req, res) {
-    let { pathname } = url.parser();
+    let { pathname } = url.parse(req.url);
+    let p = path.join(__dirname, 'public', pathname);
+    // 根目录为 / 是读不到文件的，小bug
+    fs.stat(p, function (err, stat) {
+        if (!err) {
+            sendFile(req, res, p);
+        } else {
+            sendError(res);
+        }
+    });
 });
+function sendFile(req, res, p) {
+    res.setHeader('Content-Type', mime.getType(p) + ';charset=utf8');
+    fs.createReadStream(p).pipe(res);
+}
+function sendError(res) {
+    res.statusCode = 404;
+    res.end();
+}
 server.listen(8080);
+
+// 强制缓存见1.server.js
+// 对比缓存见2.server.js
