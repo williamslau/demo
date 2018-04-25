@@ -285,12 +285,8 @@ server.listen(9999);
 // 请求头部加 Accept-Ranges:bytes
 // 见rangesServer.js和rangesClient.js
 // 使用新方法 http.get(options,function(res){});
-let http=require('http');
-let server=createServer(function(req,res){
-
-});
-server.listen(3000);
-
+// 客户端见rangesClient.js
+// 服务端见rangesServer.js
 
 // 加密 crypto模块
 // 加密算法，加密完可以解迷

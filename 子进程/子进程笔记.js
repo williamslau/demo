@@ -122,6 +122,7 @@ child.send('hello');
 
 
 // 配合http
+// http.js
 // 使用client.js测试
 let { fork } = require('child_process');
 let path = require('path');
@@ -129,8 +130,107 @@ let http = require('http');
 let child = fork('http.js', {
     cwd: path.join(__dirname, 'pro')
 });
-let server=http.createServer(function(req,res){
+let server = http.createServer(function (req, res) {
     res.end('父进程接收数据请求');
 });
 server.listen(3000);
-child.send('hello',server);
+child.send('hello', server);
+
+// 监听socket  使用net模块
+// 使用puTTY测试 Raw Always
+let { fork } = require('child_process');
+let path = require('path');
+let net = require('net');
+let child = fork('socket.js', {
+    cwd: path.join(__dirname, 'pro')
+});
+let server = net.createServer(function (socket) {
+    if (Math.random() > 0.5) {
+        socket.write('父进程接收数据请求');
+    } else {
+        child.send('socket', socket);
+    }
+});
+server.listen(3000);
+
+
+// execFile
+// 执行文件
+
+let { execFile } = require('child_process');
+execFile('node', ['-v'], {
+    maxBuffer: 100
+}, function (err, stdout, stderr) {
+    console.log(stdout);
+});
+
+// exec
+// 执行命令
+
+let { exec } = require('child_process');
+exec('ls -l', function (err, stdout, stderr) {
+    console.log(stdout);
+});
+
+// 打开一个localhost
+let { exec } = require('child_process');
+exec('start http://localhost:3000');
+
+
+// 集群
+// 方法介绍
+let cluster = require('cluster');
+// cluster.isMaster 判断是不是主线程
+// cluster.fork() 创建子进程
+if (cluster.isMaster) {
+    // 在主分支中可以创建子进程
+    let worker = cluster.fork();
+    console.log('父进程');
+} else {
+    console.log('子进程');
+    // process.exit();         // 当前进程的退出方法
+    // process.distonnect()    // 断开链接
+}
+cluster.on('fork', function (worker) { // 监听子进程
+    console.log(worker.id);
+});
+cluster.on('disconnect', function () {
+    console.log('断开链接');
+});
+cluster.on('exit', function () {       // 监听关闭子进程
+    console.log('退出');
+});
+
+// 集群
+// 使用client.js测试
+let cluster = require('cluster');
+let cpus = require('os').cpus().length;
+let http = require('http');
+// 根据cpu的核数，创建对应的进程
+// 可以根据ipc的方式进行进程之间的通信，默认不支持管道的方式
+if (cluster.isMaster) {
+    cluster.setupMaster({       //设置启动项
+        stdio: 'pipe'
+    });
+    for (let i = 0; i < cpus; i++) {
+        cluster.fork();
+    }
+} else {
+    http.createServer(function (req, res) {
+        res.end('ok' + process.pid);
+    }).listen(3000);
+}
+
+// 父进程和子进程分离
+// 使用client.js测试
+let cluster = require('cluster');
+let cpus = require('os').cpus().length;
+let http = require('http');
+let path = require('path');
+cluster.setupMaster({
+    exec: path.join(__dirname,'pro', 'subprocess.js')
+});
+for (let i = 0; i < cpus; i++) {
+    cluster.fork();
+}
+
