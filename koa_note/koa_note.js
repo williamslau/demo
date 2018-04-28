@@ -42,12 +42,12 @@ let Koa = require('koa');
 let app = new Koa();
 
 app.listen(8080);
-function log(){
-    return new Promise(function(resolve,reject){
-        setTimeout(function(){
+function log() {
+    return new Promise(function (resolve, reject) {
+        setTimeout(function () {
             console.log('ok');
             resolve();
-        },3000);
+        }, 3000);
     });
 }
 app.use(async (ctx, next) => {
@@ -93,3 +93,257 @@ function dispatch(index) {
     middle({}, () => dispatch(index + 1))
 }
 dispatch(0);
+
+// 
+
+
+
+
+
+// koa提交表单
+// ctx.body 消息
+// ctx.status 状态吗
+// ctx.length 请求体长度
+// ctx.set()  设置请求头
+
+
+let Koa = require('koa');
+let app = new Koa();
+app.listen(3000);
+
+app.use(async (ctx, next) => {
+    if (ctx.path === '/user' && ctx.method === 'GET') {
+        ctx.body = (`
+            <form method="post">
+                <input type="text" name="username"/>
+                <input type="text" name="password"/>
+                <input type="submit"/>
+            </form>
+        `)
+    } else {
+        await next()
+    }
+});
+app.use(async (ctx, next) => {
+    if (ctx.path === '/user' && ctx.method === 'POST') {
+        ctx.set('Content-Type', 'text/html;charset=utf8');
+        ctx.body = await bodyParser(ctx.req)
+    }
+});
+function bodyParser(req) {
+    return new Promise((resolve, reject) => {
+        let buffers = [];
+        req.on('data', function (data) {
+            buffers.push(data);
+        });
+        req.on('end', function () {
+            resolve(Buffer.concat(buffers));
+        });
+    });
+}
+
+
+
+// 使用koa-bodyparser
+let Koa = require('koa');
+let bodyparser = require('koa-bodyparser');
+let app = new Koa();
+app.listen(3000);
+
+app.use(bodyparser()); // 会在request上增加一个body属性 ctx.request.body
+app.use(async (ctx, next) => {
+    if (ctx.path === '/user' && ctx.method === 'GET') {
+        ctx.body = (`
+            <form method="post">
+                <input type="text" name="username"/>
+                <input type="text" name="password"/>
+                <input type="submit"/>
+            </form>
+        `)
+    } else {
+        await next()
+    }
+});
+app.use(async (ctx, next) => {
+    if (ctx.path === '/user' && ctx.method === 'POST') {
+        ctx.set('Content-Type', 'text/html;charset=utf8');
+        ctx.body = ctx.request.body;
+    }
+});
+
+
+// 实现一个bodyparser
+let Koa = require('koa');
+let app = new Koa();
+app.listen(3000);
+function bodyParser(req) {
+    return async (ctx, next) => {
+        await new Promise((resolve, reject) => {
+            let buffers = [];
+            ctx.req.on('data', function (data) {
+                buffers.push(data);
+            });
+            ctx.req.on('end', function () {
+                ctx.request.body = Buffer.concat(buffers);
+                resolve()
+            });
+        });
+        await next();
+    }
+}
+app.use(bodyParser());
+app.use(async (ctx, next) => {
+    if (ctx.path === '/user' && ctx.method === 'GET') {
+        ctx.body = (`
+            <form method="post">
+                <input type="text" name="username"/>
+                <input type="text" name="password"/>
+                <input type="submit"/>
+            </form>
+        `)
+    } else {
+        await next()
+    }
+});
+app.use(async (ctx, next) => {
+    if (ctx.path === '/user' && ctx.method === 'POST') {
+        ctx.set('Content-Type', 'text/html;charset=utf8');
+        ctx.body = ctx.request.body;
+    }
+});
+
+
+// 上传文件
+// v3 koa-better-body会移除
+let Koa = require('koa');
+let betterBody = require('koa-better-body');
+let path = require('path');
+let app = new Koa();
+app.listen(3000);
+
+app.use(betterBody({
+    uploadDir: path.join(__dirname, 'pro')
+}));
+app.use(async (ctx, next) => {
+    if (ctx.path === '/user' && ctx.method === 'GET') {
+        ctx.body = (`
+            <form method="post" enctype="multipart/form-data">
+                <input type="text" name="username"/>
+                <input type="text" name="password"/>
+                <input type="file" name="avatar">
+                <input type="submit"/>
+            </form>
+        `)
+    } else {
+        await next()
+    }
+});
+app.use(async (ctx, next) => {
+    if (ctx.path === '/user' && ctx.method === 'POST') {
+        ctx.set('Content-Type', 'text/html;charset=utf8');
+        ctx.body = ctx.request.fields;
+    }
+});
+
+// 实现上传文件
+
+let fs = require('fs');
+let Koa = require('koa');
+let path = require('path');
+let querystring = require('querystring');
+let app = new Koa();
+app.listen(3000);
+Buffer.prototype.split = function (sep) {
+    let pos = 0;
+    let len = Buffer.from(sep).length;
+    let index = -1;
+    let arr = [];
+    while (-1 != (index = this.indexOf(sep, pos))) {
+        arr.push(this.slice(pos, index));
+        pos = index + len;
+    }
+    arr.push(this.slice(pos));
+    return arr;
+}
+// console.log(Buffer.from('123**123**123').split('**'));
+function betterBody(options = {}) {
+    let { uploadDir } = options;
+    return async (ctx, next) => {
+        await new Promise((resolve, reject) => {
+            let buffers = [];
+            ctx.req.on('data', function (data) {
+                buffers.push(data);
+            });
+            ctx.req.on('end', function () {
+                let type = ctx.get('content-type');
+                let buff = Buffer.concat(buffers);
+                let fields = {};
+                // console.log(type);
+                // multipart/form-data; boundary=----WebKitFormBoundaryPmFY0FHz0HKmUInc
+                // 取等号后面的
+                if (type.includes('multipart/form-data')) {
+                    // 多form-data格式
+                    let sep = '--' + type.split('=')[1];
+                    // console.log(sep);
+                    // 自己封装的split()
+                    let lines = buff.split(sep).slice(1, -1);
+                    //console.log(lines.toString());
+                    lines.forEach(line => {
+                        let [head, content] = line.split('\r\n\r\n');
+                        head = head.slice(2).toString();
+                        //console.log(head);
+                        //console.log(content.toString());
+                        content = content.slice(0, -2);      // 截取的/r/n
+                        let [, name] = head.match(/name="(.*)"/);
+                        if (head.includes('filename')) {
+                            // 处理文件
+                            // Content-Disposition: form-data; name="avatar"; filename="xxx"
+                            // 除去head的部分剩下的全是内容
+                            let c = line.slice(head.length + 6);
+                            let p = path.join(uploadDir, Math.random().toString());
+                            fs.writeFileSync(p, c);
+                            fields[name] = [{ path: p }]
+                        } else if (type == 'application/x-www-form-urlencoded') {
+                            fields = content.toString(buff.toString());
+                            // json格式
+                        } else if (type == 'application/json') {
+                            fields = JSON.parse(buff.toString());
+                        } else {
+                            // 普通字符串
+                            fields = buff.toString();
+                        }
+                    });
+                } else {
+                    // a=b&&c=d 普通的请求
+                    fields = querystring.parse(buff.toString());
+                }
+                ctx.request.fields = fields
+                resolve();
+            });
+        });
+        await next();
+    }
+}
+app.use(betterBody({
+    uploadDir: path.join(__dirname, 'pro')
+}));
+app.use(async (ctx, next) => {
+    if (ctx.path === '/user' && ctx.method === 'GET') {
+        ctx.body = (`
+            <form method="post">
+                <input type="text" name="username"/>
+                <input type="text" name="password"/>
+                <input type="file" name="avatar">
+                <input type="submit"/>
+            </form>
+        `)
+    } else {
+        await next()
+    }
+});
+app.use(async (ctx, next) => {
+    if (ctx.path === '/user' && ctx.method === 'POST') {
+        ctx.set('Content-Type', 'text/html;charset=utf8');
+        ctx.body = ctx.request.fields;
+    }
+});

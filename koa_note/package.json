@@ -10,6 +10,8 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "koa": "^2.5.1"
+    "koa": "^2.5.1",
+    "koa-better-body": "^3.0.4",
+    "koa-static": "^4.0.2"
   }
 }

@@ -2,9 +2,13 @@ let http = require('http');
 let context = require('./context');
 let request = require('./request');
 let response = require('./response');
-class Koa {
+let Stream = require('stream');
+let EventEmitter = require('events');
+class Koa extends EventEmitter {
     constructor() {
-        this.callbackFn;
+        super()         // 因为继承了EventEmitter 所以要super
+        // this.callbackFn;
+        this.middlewares = [];
         this.context = context;
         this.request = request;
         this.response = response;
@@ -23,15 +27,46 @@ class Koa {
         ctx.res = ctx.response.res = res;
         return ctx;
     }
+    // app.use() 中间件实现
+    compose(ctx, middlewares) {
+        function dispatch(index) {
+            let middleware = middlewares[index];
+            if (middlewares.length === index) return Promise.resolve();
+            return Promise.resolve(middleware(ctx, () => dispatch(index + 1)));
+        }
+        return dispatch(0);
+    }
     handleRequest() {
         return (req, res) => {
             // this.callbackFn(req, res);
             // 创建上下文对象
+            res.statusCode = 404;
             let ctx = this.createContext(req, res);
-            Promise.resolve(this.callbackFn(ctx)).then(function(){
+            // 组合后的中间件 app.use();
+            let composeMiddleWare = this.compose(ctx, this.middlewares);
+            // Promise.resolve(this.callbackFn(ctx)).then(function () {
+            //     // ctx.body后，执行end不让他转圈
+            //     res.end(ctx.body);
+            // });
+            // Promise.resolve(composeMiddleWare).then(function () {
+            // compose本身就是promise不需要在包一层
+            composeMiddleWare.then(() => {
                 // ctx.body后，执行end不让他转圈
-                res.end(ctx.body);
-            });
+                let body = ctx.body;
+                if (body == undefined) {        // 没有传参
+                    return res.end('Not Found');
+                }
+                if (body instanceof Stream) {   // 数据是个流
+                    return body.pipe(res);
+                }
+                if (typeof body === 'object') { // 值不是字符串
+                    return res.end(JSON.stringify(body));
+                }
+                res.end(body);
+            }).catch(e => {
+                this.emit('error', e);
+                res.end('Internal Server Error');
+            });;
         }
     }
     listen() {
@@ -39,7 +74,8 @@ class Koa {
         server.listen(...arguments);
     }
     use(fn) {
-        this.callbackFn = fn;
+        // this.callbackFn = fn;
+        this.middlewares.push(fn);
     }
 }
 
