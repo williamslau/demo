@@ -32,11 +32,11 @@ let server = http.createServer(function (req, res) {
 function sendError(res) {
     res.statusCode = 404;
     res.end();
-}
+};
 function sendFile(req, res, p, stat) {
-    res.setHeader('Cache-Control', 'no-cache');     // 强制不缓存
+    res.setHeader('Cache-Control', 'no-cache');                         // 强制不缓存
     res.setHeader('Last-Modified', stat.ctime.toUTCString());
     res.setHeader('Content-Type', mime.getType(p) + ';charset=utf8')
     fs.createReadStream(p).pipe(res);
-}
+};
 server.listen(8080);
