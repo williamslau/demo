@@ -27,4 +27,4 @@ class Counter extends Component{
         )
     }
 }
-render(<Counter></Counter>, window.root)
+render(<Counter></Counter>, window.root);
