@@ -1,5 +1,7 @@
-import { createStore } from 'redux';
+import { createStore, applyMiddleware } from 'redux';
+import reduxLogger from 'redux-logger';
+import reduxThunk from 'redux-thunk';
+import reduxPromise from 'redux-promise';
 import reducer from './reducers';
-let store = createStore(reducer);
-window.store = store;
-export default store;
+// export default applyMiddleware(reduxLogger)(createStore)(reducer);
+export default createStore(reducer, applyMiddleware(reduxLogger, reduxThunk, reduxPromise));

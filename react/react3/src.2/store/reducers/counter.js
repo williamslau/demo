@@ -7,7 +7,7 @@ function counter(state = initState, action) {
             return state.update('number', value => (value + action.count))
         // return { number: state.number + action.count };
         case types.DECREMENT:
-            return state.update('number', value => (value - action.payload.count))
+            return state.update('number', value => (value - action.count))
     }
     return state;
 }
