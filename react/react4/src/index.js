@@ -5,6 +5,6 @@ import store from './store'
 import Counter from './components/Counter'
 render(
     <Provider store={store}>
-        <Counter></Counter>
+        <Counter/>
     </Provider>,
     window.root);

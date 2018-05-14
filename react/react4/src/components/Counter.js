@@ -15,16 +15,28 @@ class Counter extends Component {
     //     this.unsub();
     // }
     handleIncrement = () => {
-        this.props.add(2);
+        this.props.add(1);
     }
     handleDecrement = () => {
         this.props.minus(1);
+    }
+    handleThunk = () => {
+        this.props.thunk(2);
+    }
+    handlePromise = () => {
+        this.props.promise(3);
+    }
+    handlePromise2 = () => {
+        this.props.promise2(1);
     }
     render() {
         return (<div>
             计数器{this.props.n}
             <button onClick={this.handleIncrement}>+</button>
-            <button onClick={this.handleDecrement}>-</button>
+            <button onClick={this.handleDecrement}>+</button>
+            <button onClick={this.handleThunk}>thunk</button>
+            <button onClick={this.handlePromise}>promise</button>
+            <button onClick={this.handlePromise2}>promise2</button>
         </div>)
     }
 }

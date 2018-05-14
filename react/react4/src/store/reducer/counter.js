@@ -10,6 +10,9 @@ function reducer(state = initState, action) {
         case types.DECREMENT:
             // return { number: state.number - action.count }
             return state.update('number', value =>(value-action.count));
+        case types.CHANGE:
+            // return { number: state.number - action.count }
+            return state.update('number', value =>(value+action.payload));
     }
     return state;
 }
