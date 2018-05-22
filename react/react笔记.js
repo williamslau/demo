@@ -17,6 +17,7 @@
 
 // 设置class用className=""
 // let ele = <h1 className="red">hello,wold</h1>
+// 以大写字母开头的是自定义组件
 
 
 // redux 
