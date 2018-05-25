@@ -1,0 +1,67 @@
+默认安装到
+C:\Program Files (x86)\MongoDB\Server\3.2\bin
+
+命令行启动
+mongod --dbpath d:\Mongodb\data -port=27017 
+32位需要加-storageEngine=mmapv1
+
+
+切换数据库
+use database_name      database_name代表数据库的名字
+如果此数据库存在，则切换到此数据库下,如果此数据库还不存在也可以切过来
+
+
+查看当前使用的数据库
+db 或 db.getName()
+
+删除当前数据库
+db.dropDatabase()
+
+创建一个集合
+db.createCollection('students');
+
+查询数据库下的集合
+db.strdents.find();
+
+关闭数据库
+db.shutdownServer();
+
+查看集合帮助
+db.students.help();
+
+
+查看集合里有那些集合
+show collections
+
+
+
+插入数据
+db.students.insert({name:'zfpx',age:1});
+更改数据
+db.students.save();
+
+
+更新文档
+db.students.update({name:1}{name:222,age:666});
+$set,只更新部分字段
+db.students.update({name:1},{$set:{age:44}});
+$inc,在原基础上累加
+db.students.update({name:1},{$inc:{age:1}});
+{multi:true}匹配全部更逊
+db.students.update({age:45},{$set:{nome:'beijing'}},{multi:true});
+
+$unset删除字段
+db.students.update({age:45},{$unset:{nome:'beijing'}},{multi:true});
+{upsert:true}
+更新的时候插入一条消息（有就更新，没有就新插入）
+> db.students.update({age:12},{city:'sss'},{upsert:true});
+更新固定的哪一条
+db.students.update({age:12},{$set:{city:'sss'}},{upsert:true});
+
+
+
+
+
+
+
+

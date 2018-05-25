@@ -233,6 +233,17 @@ CREATE TABLE aaaa(
 	id int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	name VARCHAR(50) NOT NULL
 );
+
+CREATE TABLE `score` (
+  `student_id` int(11) NOT NULL DEFAULT '0',
+  `course_id` int(11) NOT NULL DEFAULT '0',
+  `grade` float DEFAULT NULL,
+  PRIMARY KEY (`student_id`,`course_id`),
+  KEY `fk_courseid` (`course_id`),
+  CONSTRAINT `fk_courseid` FOREIGN KEY (`course_id`) REFERENCES `course` (`id`),
+  CONSTRAINT `fk_stuid` FOREIGN KEY (`student_id`) REFERENCES `student` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 插入数据
 ALTER TABLE `student`
 ADD COLUMN `province`  varchar(50) NULL AFTER `city`,
@@ -240,8 +251,8 @@ ADD COLUMN `birthday`  date NULL AFTER `province`,
 ADD COLUMN `gender`   int(11) NULL AFTER `birthday`,
 ADD COLUMN `email`  varchar(50) NULL AFTER `gender`;
 
-关联表
-SELECT LAST_INSERT_ID()上一个插入的字段的主键
+上一个插入的字段的主键
+SELECT LAST_INSERT_ID()
 INSERT INTO user(name) VALUES('williamlau');
 INSERT INTO user_score(SELECT LAST_INSERT_ID(),0)
 
@@ -260,13 +271,77 @@ COUNT总数
 select COUNT(*) from student;
 
 分组
+
+SELECT 列名,查询表达式
+FROM  <表名>  
+WHERE  <条件>
+GROUP BY <分组字段> 分组整合
+HAVING 分组后的过滤条件 过滤只能是整合后的数据，不能以表数据为依据
+ORDER BY 列名 [ASC,DESC]
+LIMIT 偏移量,条数
+
 SELECT student_id,AVG(grade)
 FROM score
 WHERE grade>80
 GROUP BY student_id
-HAVING student_id > 2
+HAVING AVG(grade) >= 90;
+
+子查询
+写在括号里
+SELECT * 
+FROM student
+WHERE age > (SELECT ROUND(AVG(age)) 
+FROM student);
 
 
+ANY 任何一个
+SOME 某些
+ALL 全部
+
+SELECT *
+FROM student
+WHERE age > ALL (SELECT age FROM student WHERE province ='山东省');
+
+SELECT *
+FROM student
+WHERE age > (SELECT MAX(age) FROM student WHERE province ='山东省');
+
+
+是否存在
+EXISTS
+NOTEXISTS
+
+表连接
+内连接
+SELECT student.name,course.name,score.grade FROM score,student,course
+WHERE score.student_id = student.ID = course.ID;
+
+SELECT student.name,course.name,score.grade FROM score
+INNER JOIN student on score.student_id = student_id
+INNER JOIN course on score.course_id = course_id
+
+SELECT a.*, GROUP_CONCAT(l.label)
+AS label FROM article_table a
+INNER JOIN article_label_table al
+ON al.articleid=a.ID
+INNER JOIN label_table l
+ON al.labelid=l.ID
+GROUP BY a.ID;
+
+左链接
+SELECT persons.lastname,persons.firstname,orders.orderno
+FROM persons
+LEFT JOIN orders
+ON persons.pid=orders.pid
+ORDER BY Persons.LastName;
+
+
+右链接
+SELECT persons.lastname,persons.firstname,orders.orderno
+FROM persons
+RIGHT JOIN orders
+ON persons.pid=orders.pid
+ORDER BY Persons.LastName;
 
 
 
