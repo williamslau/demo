@@ -1,0 +1,1 @@
+mongod --config repl1.conf

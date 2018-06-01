@@ -1,0 +1,91 @@
+主从复制 已经不推荐了，用的少了
+简单的数据库同步备份的集群技术
+主服务器只有一台
+从服务器可以有很多台
+
+主服务器
+master.conf
+dbpath=E:\ms\master
+port=1000
+master=true
+
+master.bat
+mongod --config master.conf
+
+
+从服务器
+slave.conf
+dbpath=E:\p\slave
+port=1001
+slave=true
+source=127.0.0.1:1000
+
+slave.bat
+mongod --config slave.conf
+rs.slaveOk(); // 允许从服务器读取
+
+
+解除主从关系
+删除相应的数据
+> show dbs
+admin   0.000GB
+config  0.000GB
+local   0.000GB
+school  0.000GB
+> use local
+switched to db local
+> show collections
+me
+sources
+startup_log
+> db.sources.find()
+{ "_id" : ObjectId("5b0faf028dafcd5214786289"), "host" : "127.0.0.1:1001", "source" : "main", "syncedTo" : Timestamp(1527759260, 1) }
+> db.sources.remove();
+
+再挂在回来
+db.sources.insert({host:'127.0.0.1:1001'});
+
+配置副本集
+
+A服务器
+
+dbpath=E:\repl\repl1
+port=2001
+replSet=group
+B服务器
+
+dbpath=E:\repl\repl2
+port=2002
+replSet=group
+C服务器
+
+dbpath=E:\repl\repl3
+port=2003
+replSet=group
+
+随便进入一个服务器
+然后执行
+
+rs.initiate() 启动一个新的副本集
+rs.conf() 查看副本集的配置
+rs.status() 命令
+use admin;
+var conf=
+{
+    "_id" : "group",
+    "members" : [
+        { "_id" : 0,  "host" : "127.0.0.1:2001"  },
+        { "_id" : 1,  "host" : "127.0.0.1:2002"  },
+        { "_id" : 2,  "host" : "127.0.0.1:2003"  }
+    ]
+}
+rs.initiate(conf);
+rs.status();
+
+
+
+
+
+
+
+
