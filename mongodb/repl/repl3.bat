@@ -1,1 +1,0 @@
-mongod --config repl3.conf
